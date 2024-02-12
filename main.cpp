@@ -48,13 +48,14 @@ int main() {
     progpConfig_SetJavascriptErrorListener(onJavascriptError);
     progpConfig_SetJavascriptFunctionProvider(createTestFunctions);
     progpConfig_SetDraftFunctionListener(draftFunctionListener);
+
     progp_StartupEngine();
 
     //progp_DeclareDynamicFunction("draftFunction");
 
-    //progp_WaitDebuggerReady();
+    progp_WaitDebuggerReady();
 
-    auto filePath = progpTools_GetCurrentDirectory() + "/test.js";
+    auto filePath = progpTools_GetCurrentDirectory() + "/stdin.js";
     auto script = progpTools_readFileContent(filePath);
     progp_ExecuteScript(script.c_str(), filePath.c_str());
 

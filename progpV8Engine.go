@@ -119,6 +119,7 @@ func (m *V8Engine) ExecuteScript(scriptContent string, compiledFilePath string) 
 		C.progp_ExecuteScript(cScriptContent, cCompiledFilePath)
 	})
 
+	// Is unlocked by "cppCallOnNoMoreTask".
 	gCurrentScriptMutex.Lock()
 
 	err := gLastErrorMessage
