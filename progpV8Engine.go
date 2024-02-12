@@ -515,6 +515,7 @@ func decodeAnyValue(value *C.s_progp_anyValue, expectedTypeName string, expected
 
 var gTypeByteArray = reflect.TypeOf([]byte{})
 var gTypeResource = reflect.TypeOf(&progpAPI.SharedResource{})
+var gStringBuffer = reflect.TypeOf(progpAPI.StringBuffer{})
 
 func encodeAnyValue(resV reflect.Value) C.s_progp_anyValue {
 	if !resV.IsValid() {
@@ -523,6 +524,7 @@ func encodeAnyValue(resV reflect.Value) C.s_progp_anyValue {
 		var res C.s_progp_anyValue
 		res.errorMessage = nil
 		kind := resV.Kind()
+		resvType := resV.Type()
 
 		if kind == reflect.String {
 			res.valueType = C.int(AnyValueTypeString)
@@ -545,10 +547,15 @@ func encodeAnyValue(resV reflect.Value) C.s_progp_anyValue {
 		} else if resV.CanUint() {
 			res.valueType = C.int(AnyValueTypeNumber)
 			res.number = C.double(resV.Uint())
-		} else if resV.Type() == gTypeResource {
+		} else if resvType == gTypeResource {
 			rs := resV.Interface().(*progpAPI.SharedResource)
 			res.valueType = C.int(AnyValueTypeNumber)
 			res.number = C.double(rs.GetId())
+		} else if resvType == gStringBuffer {
+			res.valueType = C.int(AnyValueTypeString)
+			bytes := resV.Bytes()
+			res.voidPtr = unsafe.Pointer(C.CString(string(bytes)))
+			res.mustFree = cInt1
 		} else {
 			var asBytes []byte
 			var err error
