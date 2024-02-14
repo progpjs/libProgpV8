@@ -128,7 +128,12 @@ func (m *V8Engine) GetDefaultIsolate() progpAPI.ScriptIsolate {
 	return gV8Isolate
 }
 
-func (m *V8Engine) CreateIsolate(_ string) progpAPI.ScriptIsolate {
+func (m *V8Engine) CreateNewIsolate(_ string, _ any) progpAPI.ScriptIsolate {
+	if gIsFirstCreatedIsolate {
+		gIsFirstCreatedIsolate = false
+		return gV8Isolate
+	}
+
 	return nil
 }
 
@@ -207,6 +212,7 @@ const cInt1 = C.int(1)
 
 var gV8Isolate = &v8Isolate{}
 var gIsStartScriptExecuted = false
+var gIsFirstCreatedIsolate = true
 
 type v8Isolate struct {
 }
@@ -219,7 +225,7 @@ func (m *v8Isolate) GetSecurityGroup() string {
 	return "main"
 }
 
-func (m *v8Isolate) ExecuteStartScript(scriptContent string, compiledFilePath string, sourceScriptPath string) *progpAPI.ScriptErrorMessage {
+func (m *v8Isolate) ExecuteScript(scriptContent string, compiledFilePath string, sourceScriptPath string) *progpAPI.ScriptErrorMessage {
 	if gIsStartScriptExecuted {
 		return nil
 	}
@@ -255,6 +261,12 @@ func (m *v8Isolate) ExecuteStartScript(scriptContent string, compiledFilePath st
 	}
 
 	return err
+}
+
+func (m *v8Isolate) ExecuteScriptFile(iso progpAPI.ScriptIsolate, scriptPath string) *progpAPI.ScriptErrorMessage {
+	// It's required since script translation is in libProgpScripts and not progpAPI.
+	ex := progpAPI.GetScriptFileExecutor()
+	return ex(iso, scriptPath)
 }
 
 func (m *v8Isolate) TryDispose() bool {
