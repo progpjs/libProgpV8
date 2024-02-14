@@ -99,40 +99,6 @@ func (m *V8Engine) AddDraftFunction(functionName string) {
 	C.progp_DeclareDynamicFunction(cFunctionName)
 }
 
-func (m *V8Engine) ExecuteScript(scriptContent string, compiledFilePath string) *progpAPI.ScriptErrorMessage {
-	progpAPI.DeclareBackgroundTaskStarted()
-	defer progpAPI.DeclareBackgroundTaskEnded()
-
-	gCurrentScriptMutex.Lock()
-	gCurrentScriptCallerIsWaiting = true
-
-	gTaskQueue.Push(func() {
-		gCurrentScriptPath = compiledFilePath
-		gLastErrorMessage = nil
-
-		cScriptContent := C.CString(scriptContent)
-		defer C.free(unsafe.Pointer(cScriptContent))
-
-		cCompiledFilePath := C.CString(compiledFilePath)
-		defer C.free(unsafe.Pointer(cCompiledFilePath))
-
-		C.progp_ExecuteScript(cScriptContent, cCompiledFilePath)
-	})
-
-	// Is unlocked by "cppCallOnNoMoreTask".
-	gCurrentScriptMutex.Lock()
-
-	err := gLastErrorMessage
-	gLastErrorMessage = nil
-	return err
-}
-
-func (m *V8Engine) DisarmError(error *progpAPI.ScriptErrorMessage) {
-	if gLastErrorMessage == error {
-		gLastErrorMessage = nil
-	}
-}
-
 func (m *V8Engine) Shutdown() {
 	if gTaskQueue.IsDisposed() {
 		// Already shutdown, then quit.
@@ -149,11 +115,23 @@ func (m *V8Engine) Shutdown() {
 
 	gTaskQueue.Dispose()
 
-	freeCurrentScriptCaller()
+	exitCurrentIsolate()
+}
+
+func (m *V8Engine) IsMultiIsolateSupported() bool {
+	return false
+}
+
+func (m *V8Engine) GetDefaultIsolate() progpAPI.ScriptIsolate {
+	return gV8Isolate
+}
+
+func (m *V8Engine) CreateIsolate(securityGroup string) progpAPI.ScriptIsolate {
+	return nil
 }
 
 func asScriptErrorMessage(ptr *C.s_progp_v8_errorMessage) *progpAPI.ScriptErrorMessage {
-	m := progpAPI.ScriptErrorMessage{ScriptEngine: gProgpV8Engine}
+	m := progpAPI.ScriptErrorMessage{ScriptIsolate: gV8Isolate}
 
 	m.ScriptPath = gCurrentScriptPath
 
@@ -190,7 +168,8 @@ func asScriptErrorMessage(ptr *C.s_progp_v8_errorMessage) *progpAPI.ScriptErrorM
 	return &m
 }
 
-func freeCurrentScriptCaller() {
+// exitCurrentIsolate unlocks the current isolate allowing him to exit.
+func exitCurrentIsolate() {
 	if !gCurrentScriptCallerIsWaiting {
 		return
 	}
@@ -211,6 +190,68 @@ var gFunctionRegistry = progpAPI.GetFunctionRegistry()
 
 const cInt0 = C.int(0)
 const cInt1 = C.int(1)
+
+//endregion
+
+//region V8Isolate
+
+var gV8Isolate = &v8Isolate{}
+var gIsStartScriptExecuted = false
+
+type v8Isolate struct {
+}
+
+func (m *v8Isolate) GetScriptEngine() progpAPI.ScriptEngine {
+	return gProgpV8Engine
+}
+
+func (m *v8Isolate) GetSecurityGroup() string {
+	return "main"
+}
+
+func (m *v8Isolate) ExecuteStartScript(scriptContent string, compiledFilePath string) *progpAPI.ScriptErrorMessage {
+	if gIsStartScriptExecuted {
+		return nil
+	}
+	gIsStartScriptExecuted = true
+
+	progpAPI.DeclareBackgroundTaskStarted()
+	defer progpAPI.DeclareBackgroundTaskEnded()
+
+	gCurrentScriptMutex.Lock()
+	gCurrentScriptCallerIsWaiting = true
+
+	gTaskQueue.Push(func() {
+		gCurrentScriptPath = compiledFilePath
+		gLastErrorMessage = nil
+
+		cScriptContent := C.CString(scriptContent)
+		defer C.free(unsafe.Pointer(cScriptContent))
+
+		cCompiledFilePath := C.CString(compiledFilePath)
+		defer C.free(unsafe.Pointer(cCompiledFilePath))
+
+		C.progp_ExecuteScript(cScriptContent, cCompiledFilePath)
+	})
+
+	// Is unlocked by "cppCallOnNoMoreTask".
+	gCurrentScriptMutex.Lock()
+
+	err := gLastErrorMessage
+	gLastErrorMessage = nil
+	return err
+}
+
+func (m *v8Isolate) TryDispose() bool {
+	// V8 only support one isolate, it's why it can't be disposed.
+	return false
+}
+
+func (m *v8Isolate) DisarmError(error *progpAPI.ScriptErrorMessage) {
+	if gLastErrorMessage == error {
+		gLastErrorMessage = nil
+	}
+}
 
 //endregion
 
@@ -257,7 +298,7 @@ func (m *v8Function) prepareCall() C.ProgpV8FunctionPtr {
 	return m.functionPtr
 }
 
-func (m *v8Function) CallWithString(value string) {
+func (m *v8Function) CallWithString2(value string) {
 	functionPtr := m.prepareCall()
 	if functionPtr == nil {
 		return
@@ -274,7 +315,7 @@ func (m *v8Function) CallWithString(value string) {
 	}
 }
 
-func (m *v8Function) CallWithArrayBuffer(value []byte) {
+func (m *v8Function) CallWithArrayBuffer2(value []byte) {
 	functionPtr := m.prepareCall()
 	if functionPtr == nil {
 		return
@@ -289,7 +330,7 @@ func (m *v8Function) CallWithArrayBuffer(value []byte) {
 	}
 }
 
-func (m *v8Function) CallWithStringBuffer(value []byte) {
+func (m *v8Function) CallWithStringBuffer2(value []byte) {
 	functionPtr := m.prepareCall()
 	if functionPtr == nil {
 		return
@@ -306,11 +347,11 @@ func (m *v8Function) CallWithStringBuffer(value []byte) {
 	}
 }
 
-func (m *v8Function) CallWithResource(value *progpAPI.SharedResource) {
-	m.CallWithDouble(float64(value.GetId()))
+func (m *v8Function) CallWithResource2(value *progpAPI.SharedResource) {
+	m.CallWithDouble2(float64(value.GetId()))
 }
 
-func (m *v8Function) CallWithDouble(value float64) {
+func (m *v8Function) CallWithDouble2(value float64) {
 	functionPtr := m.prepareCall()
 	if functionPtr == nil {
 		return
@@ -325,7 +366,7 @@ func (m *v8Function) CallWithDouble(value float64) {
 	}
 }
 
-func (m *v8Function) CallWithBool(value bool) {
+func (m *v8Function) CallWithBool2(value bool) {
 	functionPtr := m.prepareCall()
 	if functionPtr == nil {
 		return
@@ -617,7 +658,7 @@ func cppCallOnDebuggerExited() {
 //
 //export cppCallOnNoMoreTask
 func cppCallOnNoMoreTask() {
-	freeCurrentScriptCaller()
+	exitCurrentIsolate()
 }
 
 // cppOnDynamicFunctionProviderRequested is call when the engine must create a new function group.
