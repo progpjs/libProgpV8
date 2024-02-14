@@ -211,10 +211,10 @@ const cInt1 = C.int(1)
 //region V8Isolate
 
 var gV8Isolate = &v8Isolate{}
-var gIsStartScriptExecuted = false
 var gIsFirstCreatedIsolate = true
 
 type v8Isolate struct {
+	executingMutex sync.Mutex
 }
 
 func (m *v8Isolate) GetScriptEngine() progpAPI.ScriptEngine {
@@ -226,10 +226,9 @@ func (m *v8Isolate) GetSecurityGroup() string {
 }
 
 func (m *v8Isolate) ExecuteScript(scriptContent string, compiledFilePath string, sourceScriptPath string) *progpAPI.ScriptErrorMessage {
-	if gIsStartScriptExecuted {
-		return nil
-	}
-	gIsStartScriptExecuted = true
+	// Allow to make wait call to this function done while the current script is executing.
+	m.executingMutex.Lock()
+	defer m.executingMutex.Unlock()
 
 	progpAPI.DeclareBackgroundTaskStarted()
 	defer progpAPI.DeclareBackgroundTaskEnded()
