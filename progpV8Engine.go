@@ -46,7 +46,9 @@ import (
 //region V8Engine
 
 type V8Engine struct {
-	isStarted bool
+	isStarted               bool
+	runtimeErrorHandler     progpAPI.RuntimeErrorHandlerF
+	scriptTerminatedHandler progpAPI.ScriptTerminatedHandlerF
 }
 
 var gProgpV8Engine *V8Engine
@@ -126,12 +128,20 @@ func (m *V8Engine) GetDefaultIsolate() progpAPI.ScriptIsolate {
 	return gV8Isolate
 }
 
-func (m *V8Engine) CreateIsolate(securityGroup string) progpAPI.ScriptIsolate {
+func (m *V8Engine) CreateIsolate(_ string) progpAPI.ScriptIsolate {
 	return nil
 }
 
+func (m *V8Engine) SetRuntimeErrorHandler(handler progpAPI.RuntimeErrorHandlerF) {
+	m.runtimeErrorHandler = handler
+}
+
+func (m *V8Engine) SetScriptTerminatedHandler(handler progpAPI.ScriptTerminatedHandlerF) {
+	m.scriptTerminatedHandler = handler
+}
+
 func asScriptErrorMessage(ptr *C.s_progp_v8_errorMessage) *progpAPI.ScriptErrorMessage {
-	m := progpAPI.ScriptErrorMessage{ScriptIsolate: gV8Isolate}
+	m := progpAPI.NewScriptErrorMessage(gV8Isolate)
 
 	m.ScriptPath = gCurrentScriptPath
 
@@ -165,7 +175,7 @@ func asScriptErrorMessage(ptr *C.s_progp_v8_errorMessage) *progpAPI.ScriptErrorM
 	}
 
 	m.StackTraceFrames = frames
-	return &m
+	return m
 }
 
 // exitCurrentIsolate unlocks the current isolate allowing him to exit.
@@ -209,7 +219,7 @@ func (m *v8Isolate) GetSecurityGroup() string {
 	return "main"
 }
 
-func (m *v8Isolate) ExecuteStartScript(scriptContent string, compiledFilePath string) *progpAPI.ScriptErrorMessage {
+func (m *v8Isolate) ExecuteStartScript(scriptContent string, compiledFilePath string, sourceScriptPath string) *progpAPI.ScriptErrorMessage {
 	if gIsStartScriptExecuted {
 		return nil
 	}
@@ -239,6 +249,11 @@ func (m *v8Isolate) ExecuteStartScript(scriptContent string, compiledFilePath st
 
 	err := gLastErrorMessage
 	gLastErrorMessage = nil
+
+	if gProgpV8Engine.scriptTerminatedHandler != nil {
+		err = gProgpV8Engine.scriptTerminatedHandler(m, sourceScriptPath, err)
+	}
+
 	return err
 }
 
@@ -641,6 +656,13 @@ func encodeAnyValue(resV reflect.Value) C.s_progp_anyValue {
 //export cppCallOnJavascriptError
 func cppCallOnJavascriptError(error *C.s_progp_v8_errorMessage) {
 	gLastErrorMessage = asScriptErrorMessage(error)
+
+	if gProgpV8Engine.runtimeErrorHandler != nil {
+		if gProgpV8Engine.runtimeErrorHandler(gV8Isolate, gLastErrorMessage) {
+			return
+		}
+	}
+
 	progpAPI.OnUnCatchScriptError(gLastErrorMessage)
 }
 
