@@ -19,7 +19,7 @@
 // Keep it as-is and don't replace by cstddef
 // since currently go compiler don't support cstddef.
 //
-#include <stddef.h>
+#include <stddef.h> // NOLINT(*-deprecated-headers)
 
 #if __cplusplus
 extern "C" {
@@ -59,8 +59,10 @@ typedef struct { const char *p; ptrdiff_t n; } s_progp_goString;
 typedef struct { const char *p; int n; } s_progp_goStringOut;
 
 typedef struct s_progp_v8_function s_progp_v8_function;
-//
 typedef s_progp_v8_function* ProgpV8FunctionPtr;
+
+typedef struct s_progp_context s_progp_context;
+typedef s_progp_context* ProgpContext;
 
 typedef struct s_progp_v8_eventData s_progp_v8_eventData;
 

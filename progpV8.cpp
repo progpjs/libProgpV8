@@ -45,14 +45,16 @@ f_progp_v8_functions_provider gV8FunctionProvider = nullptr;
 f_progp_v8_dynamicFunctions_provider gV8DynamicFunctionProvider = nullptr;
 f_progp_v8_function_allowedFunctionChecker gV8AllowedFunctionChecker = nullptr;
 
-v8::Isolate* gUnsafe_v8Iso;
-v8::Persistent<v8::Context>* gUnsafe_v8Ctx;
-v8::Persistent<v8::Context> gUnsafe_prstV8Ctx;
+ProgpContext gProgpCtx;
 
 void progp_DeclareGlobalFunctions();
-void onJavascriptError(const v8::Local<v8::Context> &v8Ctx, v8::Local<v8::Message>& message, const char* caller);
+void onJavascriptError(const v8::Local<v8::Context> &v8Ctx, v8::Local<v8::Message>& message);
 
 //region Engine
+
+ProgpContext progp_GetCurrentContext() {
+    return gProgpCtx;
+}
 
 void onProcessRejectedPromise(v8::PromiseRejectMessage reject_message) {
     auto v8Iso = reject_message.GetPromise()->GetIsolate();
@@ -62,7 +64,7 @@ void onProcessRejectedPromise(v8::PromiseRejectMessage reject_message) {
 
     if (!messageValue.IsEmpty()) {
         v8::Local<v8::Message> errorMessage = v8::Exception::CreateMessage(v8Iso, messageValue);
-        onJavascriptError(v8Ctx, errorMessage, "onProcessRejectedPromise");
+        onJavascriptError(v8Ctx, errorMessage);
     }
 }
 
@@ -75,32 +77,32 @@ void progp_StartupEngine() {
 
     gArrayBufferAllocator = v8::ArrayBuffer::Allocator::NewDefaultAllocator();
 
+    gProgpCtx = new s_progp_context();
+
     // Create the v8-isolate.
     {
         v8::Isolate::CreateParams params;
         params.array_buffer_allocator = gArrayBufferAllocator;
 
-        gUnsafe_v8Iso = v8::Isolate::New(params);
+        gProgpCtx->v8Iso = v8::Isolate::New(params);
 
         // Allows having the stacktrace for the errors.
-        gUnsafe_v8Iso->SetCaptureStackTraceForUncaughtExceptions(true);
+        gProgpCtx->v8Iso->SetCaptureStackTraceForUncaughtExceptions(true);
 
         // Allows knowing when a promise is rejected and not caught.
-        gUnsafe_v8Iso->SetPromiseRejectCallback(onProcessRejectedPromise);
+        gProgpCtx->v8Iso->SetPromiseRejectCallback(onProcessRejectedPromise);
 
         // Allow freeing memory when running out.
-        gUnsafe_v8Iso->LowMemoryNotification();
+        gProgpCtx->v8Iso->LowMemoryNotification();
     }
 
     // Create the v8-context.
     {
-        V8ISO_ACCESS();
+        V8ISO_ACCESS(gProgpCtx);
 
         v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(v8Iso);
         auto v8Ctx = v8::Context::New(v8Iso, nullptr, global);
-
-        gUnsafe_prstV8Ctx.Reset(v8Iso, v8Ctx);
-        gUnsafe_v8Ctx = &gUnsafe_prstV8Ctx;
+        gProgpCtx->v8Ctx.Reset(v8Iso, v8Ctx);
     }
 
 #ifndef PROGP_STANDALONE
@@ -148,6 +150,7 @@ void progp_DecreaseContextRef() {
 extern "C"
 bool progp_ExecuteScript(const char* scriptContent, const char* scriptOrigin) {
     gCurrentScriptPath = scriptOrigin;
+    auto progpCtx = gProgpCtx;
     progp_IncreaseContextRef();
     V8CTX_ACCESS();
 
@@ -159,7 +162,7 @@ bool progp_ExecuteScript(const char* scriptContent, const char* scriptOrigin) {
 
     if (!v8::Script::Compile(v8Ctx, v8ScriptSourceAsText, &v8ScriptOrigin).ToLocal(&script)) {
         auto error = tryCatch.Message();
-        onJavascriptError(v8Ctx, error, "progp_ExecuteScript - compiling step");
+        onJavascriptError(v8Ctx, error);
         progp_DecreaseContextRef();
         return false;
     }
@@ -168,7 +171,7 @@ bool progp_ExecuteScript(const char* scriptContent, const char* scriptOrigin) {
     //
     if (!script->Run(v8Ctx).ToLocal(&result)) {
         auto error = tryCatch.Message();
-        onJavascriptError(v8Ctx, error, "progp_ExecuteScript - executing step");
+        onJavascriptError(v8Ctx, error);
         progp_DecreaseContextRef();
         return false;
     }
@@ -203,7 +206,7 @@ void disposeErrorMessage(s_progp_v8_errorMessage *msg) {
     delete(msg);
 }
 
-static s_progp_v8_errorMessage* createErrorMessage(v8::Isolate *v8Iso, const v8::Local<v8::Context> &v8Ctx, v8::Local<v8::Message>& message) {
+static s_progp_v8_errorMessage* createErrorMessage(ProgpContext progpCtx, const v8::Local<v8::Context> &v8Ctx, v8::Local<v8::Message>& message) {
     auto res = new s_progp_v8_errorMessage();
 
     res->error = strdup(V8VALUE_TO_CSTRING(message->Get()));
@@ -236,7 +239,7 @@ static s_progp_v8_errorMessage* createErrorMessage(v8::Isolate *v8Iso, const v8:
         res->stackTraceFrameSize = sizeof(s_progp_v8_stackTraceFrame);
 
         for (auto frameOffset = 0 ; frameOffset<stackTraceFrameCount ; frameOffset++) {
-            auto v8StackFrame = v8StackTrace->GetFrame(v8Iso, frameOffset);
+            auto v8StackFrame = v8StackTrace->GetFrame(progpCtx->v8Iso, frameOffset);
             auto frame = &frames[frameOffset];
 
             frame->line = v8StackFrame->GetLineNumber();
@@ -253,11 +256,11 @@ static s_progp_v8_errorMessage* createErrorMessage(v8::Isolate *v8Iso, const v8:
     return res;
 }
 
-void onJavascriptError(const v8::Local<v8::Context> &v8Ctx, v8::Local<v8::Message>& message, const char* caller) {
+void onJavascriptError(const v8::Local<v8::Context> &v8Ctx, v8::Local<v8::Message>& message) {
     //PROGP_DEBUG("Calling onJavascriptError from " << caller);
 
     if (gJavascriptErrorListener != nullptr) {
-        auto msg = createErrorMessage(gUnsafe_v8Iso, v8Ctx, message);
+        auto msg = createErrorMessage(gProgpCtx, v8Ctx, message);
         gJavascriptErrorListener(msg);
         disposeErrorMessage(msg);
     }
@@ -287,6 +290,7 @@ void progp_AddFunctionToObject(const char* groupName, const v8::Local<v8::Object
         if (!gV8AllowedFunctionChecker((char*)securityGroup.c_str(), (char*)groupName, (char*)functionName)) return;
     }
 
+    auto progpCtx = gProgpCtx;
     V8CTX_ACCESS();
 
     auto v8FunctionTemplate = v8::FunctionTemplate::New(v8Iso, functionRef);
@@ -325,6 +329,7 @@ void progp_DeclareDynamicFunction(const char* functionName) {
         return;
     }
 
+    auto progpCtx = gProgpCtx;
     V8CTX_ACCESS();
 
     auto vFctName = CSTRING_TO_V8VALUE(functionName);
@@ -341,7 +346,9 @@ void progp_DeclareDynamicFunction(const char* functionName) {
 }
 
 void progp_DeclareGlobalFunctions() {
+    auto progpCtx = gProgpCtx;
     V8CTX_ACCESS();
+
     progp_CreateFunctionGroup("global", v8Ctx->Global());
 }
 
@@ -351,7 +358,7 @@ void progp_DeclareGlobalFunctions() {
 
 s_progp_v8_function* progpFunctions_NewPointer(const v8::Local<v8::Function> &v8Function) {
     auto res = new s_progp_v8_function();
-    res->ref.Reset(gUnsafe_v8Iso, v8Function);
+    res->ref.Reset(gProgpCtx->v8Iso, v8Function);
     return res;
 }
 
@@ -362,6 +369,7 @@ s_progp_v8_function* progpFunctions_NewPointer(const v8::Local<v8::Function> &v8
 #define FCT_CALLBACK_PARAMS s_progp_v8_function* functionRef, bool mustDecreaseTaskCount, bool mustDisposeFunction
 
 #define FCT_CALLBACK_BEFORE \
+    auto progpCtx = gProgpCtx; \
     V8CTX_ACCESS();         \
     v8::TryCatch tryCatch(v8Iso);
 
@@ -369,7 +377,7 @@ s_progp_v8_function* progpFunctions_NewPointer(const v8::Local<v8::Function> &v8
     if (isEmpty) { \
         if (tryCatch.HasCaught()) { \
             auto catchError = tryCatch.Message(); \
-            onJavascriptError(v8Ctx, catchError, "callJsFunctionFromExternal"); \
+            onJavascriptError(v8Ctx, catchError); \
         } \
     } \
     \
@@ -948,7 +956,7 @@ ProgpDbgInternals_V8InspectorClientImpl::ProgpDbgInternals_V8InspectorClientImpl
     // The inspector is what process the message of Chrome Inspector.
     //_inspector.release(); .... to delete
     //
-    _inspector = v8_inspector::V8Inspector::create(gUnsafe_v8Iso, this);
+    _inspector = v8_inspector::V8Inspector::create(gProgpCtx->v8Iso, this);
 
     // Allow avoiding recursing on message processing loop.
     _runNestedLoop = false;
@@ -970,7 +978,7 @@ void ProgpDbgInternals_V8InspectorClientImpl::onNetworkDisconnected() {
 void ProgpDbgInternals_V8InspectorClientImpl::onChromeInspectorConnected() {
     if (_v8InspectorSession== nullptr) {
         // The channel allows receiving messages from V8 Engine.
-        _channel = std::make_unique<ProgpDbgInternals_V8InspectorChannelImpl>(gUnsafe_v8Iso, this);
+        _channel = std::make_unique<ProgpDbgInternals_V8InspectorChannelImpl>(gProgpCtx->v8Iso, this);
 
         // Bind the inspector and the channel.
         // _v8InspectorSession.release(); .... to delete
@@ -990,7 +998,9 @@ void ProgpDbgInternals_V8InspectorClientImpl::onChromeInspectorConnected() {
     std::string ctxName("progpjs-");
     ctxName += std::to_string(_contextGroupId);
 
+    auto progpCtx = gProgpCtx;
     V8CTX_ACCESS();
+
     _inspector->contextCreated(v8_inspector::V8ContextInfo(v8Ctx, _contextGroupId, convertToStringView(ctxName)));
 
     _runNestedLoop = false;
@@ -1007,11 +1017,13 @@ void ProgpDbgInternals_V8InspectorClientImpl::onMessageFromChromeInspector(const
 }
 
 void ProgpDbgInternals_V8InspectorClientImpl::runMessageLoopOnPause(int contextGroupId) {
-    // Avoid recursing.
+    // Avoid recurring.
     if (_runNestedLoop) return;
 
     _isInPause = true;
     _runNestedLoop = true;
+
+    auto progpCtx = gProgpCtx;
 
     // _onWaitFrontendMessageOnPause will wait a network message and call ProgpDebugger::onMessage
     //
@@ -1020,7 +1032,7 @@ void ProgpDbgInternals_V8InspectorClientImpl::runMessageLoopOnPause(int contextG
 
         {
             std::lock_guard autoLock(_ctxPtrMutex);
-            while (v8::platform::PumpMessageLoop(_platform, gUnsafe_v8Iso)) {}
+            while (v8::platform::PumpMessageLoop(_platform, progpCtx->v8Iso)) {}
         }
     }
 
@@ -1033,12 +1045,14 @@ void ProgpDbgInternals_V8InspectorClientImpl::quitMessageLoopOnPause() {
 }
 
 v8::Local<v8::Context> ProgpDbgInternals_V8InspectorClientImpl::ensureDefaultContextInGroup(int contextGroupId) {
+    auto progpCtx = gProgpCtx;
     V8CTX_ACCESS();
     return v8Ctx;
 }
 
 void ProgpDbgInternals_V8InspectorClientImpl::processMessageFromChromeInspector(const std::string &message) {
     std::lock_guard autoLock(_ctxPtrMutex);
+    auto progpCtx = gProgpCtx;
     V8CTX_ACCESS();
 
     v8_inspector::StringView protocolMessage = convertToStringView(message);
@@ -1130,7 +1144,7 @@ void ProgpDbgInternals_V8InspectorClientImpl::loopWaitAndSendMessages() {
         pauseMs(50);
 
         // Avoid endless loop warning.
-        while (gUnsafe_v8Iso!= nullptr) {
+        while (gProgpCtx->v8Iso!= nullptr) {
             // If paused, then it's processed by ProgpDbgInternals_IoNetwork::processNextMessageIfAvailable.
             if (!_isInPause) {
                 auto item = getNextMessageFromChromeInspector();
@@ -1158,12 +1172,16 @@ ProgpDbgInternals_V8InspectorChannelImpl::ProgpDbgInternals_V8InspectorChannelIm
 }
 
 void ProgpDbgInternals_V8InspectorChannelImpl::sendResponse(int callId, std::unique_ptr<v8_inspector::StringBuffer> message) {
+    auto progpCtx = gProgpCtx;
     V8CTX_ACCESS();
+
     g_debuggerInt_ioNetwork->sendMessageToChromeInspector(convertToString(v8Iso, message->string()));
 }
 
 void ProgpDbgInternals_V8InspectorChannelImpl::sendNotification(std::unique_ptr<v8_inspector::StringBuffer> message) {
+    auto progpCtx = gProgpCtx;
     V8CTX_ACCESS();
+
     g_debuggerInt_ioNetwork->sendMessageToChromeInspector( convertToString(v8Iso, message->string()));
 }
 
@@ -1206,7 +1224,7 @@ s_progp_anyValue progp_AnyValueFromV8Value(const v8::Local<v8::Context> &v8Ctx, 
 
     if (v8Value->IsString()) {
         res.valueType = PROGP_ANY_VALUE_STRING;
-        auto asString = v8::String::Utf8Value(gUnsafe_v8Iso, v8Value.As<v8::String>());
+        auto asString = v8::String::Utf8Value(gProgpCtx->v8Iso, v8Value.As<v8::String>());
 
         // Here the value must be copied since asString is deleted once quitting this scope.
         // I don't know how to avoid in this use case.
@@ -1238,7 +1256,7 @@ s_progp_anyValue progp_AnyValueFromV8Value(const v8::Local<v8::Context> &v8Ctx, 
         //
         if (v8::JSON::Stringify(v8Ctx, v8Value, gap).ToLocal(&json)) {
             res.valueType = PROGP_ANY_VALUE_JSON;
-            auto asString = v8::String::Utf8Value(gUnsafe_v8Iso, json);
+            auto asString = v8::String::Utf8Value(gProgpCtx->v8Iso, json);
             res.voidPtr = strdup(*asString);
             res.size = (int)strlen((char*)res.voidPtr);
             return res;
@@ -1250,19 +1268,21 @@ s_progp_anyValue progp_AnyValueFromV8Value(const v8::Local<v8::Context> &v8Ctx, 
 }
 
 v8::Local<v8::Value> progp_AnyValueToV8Value(const v8::Local<v8::Context> &v8Ctx, const s_progp_anyValue &anyValue) {
+    auto progpCtx = gProgpCtx;
+
     switch (anyValue.valueType) {
         case PROGP_ANY_VALUE_UNDEFINED:
         case PROGP_ANY_VALUE_INVALID:
-            return v8::Undefined(gUnsafe_v8Iso);
+            return v8::Undefined(progpCtx->v8Iso);
 
         case PROGP_ANY_VALUE_NULL:
-            return v8::Null(gUnsafe_v8Iso);
+            return v8::Null(progpCtx->v8Iso);
 
         case PROGP_ANY_VALUE_NUMBER:
-            return v8::Number::New(gUnsafe_v8Iso, anyValue.number);
+            return v8::Number::New(progpCtx->v8Iso, anyValue.number);
 
         case PROGP_ANY_VALUE_BOOLEAN:
-            return v8::Boolean::New(gUnsafe_v8Iso, anyValue.size == 1);
+            return v8::Boolean::New(progpCtx->v8Iso, anyValue.size == 1);
 
         case PROGP_ANY_VALUE_STRING: {
             v8::Local<v8::String> r = CSTRING_TO_V8VALUE((char*)anyValue.voidPtr);
@@ -1271,9 +1291,9 @@ v8::Local<v8::Value> progp_AnyValueToV8Value(const v8::Local<v8::Context> &v8Ctx
         }
 
         case PROGP_ANY_VALUE_ARRAYBUFFER: {
-            auto v8BackingStore = std::shared_ptr(v8::ArrayBuffer::NewBackingStore(gUnsafe_v8Iso, anyValue.size));
+            auto v8BackingStore = std::shared_ptr(v8::ArrayBuffer::NewBackingStore(progpCtx->v8Iso, anyValue.size));
             memcpy(v8BackingStore->Data(), anyValue.voidPtr, anyValue.size);
-            return v8::ArrayBuffer::New(gUnsafe_v8Iso, v8BackingStore);
+            return v8::ArrayBuffer::New(progpCtx->v8Iso, v8BackingStore);
         }
 
         case PROGP_ANY_VALUE_JSON: {
@@ -1281,14 +1301,14 @@ v8::Local<v8::Value> progp_AnyValueToV8Value(const v8::Local<v8::Context> &v8Ctx
             auto mayBeJson = v8::JSON::Parse(v8Ctx, asString);
 
             if (mayBeJson.IsEmpty()) {
-                return v8::Undefined(gUnsafe_v8Iso);
+                return v8::Undefined(progpCtx->v8Iso);
             }
 
             return mayBeJson.ToLocalChecked();
         }
     }
 
-    return v8::Undefined(gUnsafe_v8Iso);
+    return v8::Undefined(progpCtx->v8Iso);
 }
 
 void progp_handleDraftFunction(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
@@ -1298,6 +1318,8 @@ void progp_handleDraftFunction(const v8::FunctionCallbackInfo<v8::Value> &callIn
             callInfo.GetReturnValue().SetUndefined();
             return;
         }
+
+        auto progpCtx = gProgpCtx;
 
         auto data = callInfo.Data();
         auto utf8FunctionName = V8VALUE_TO_UTF8STRING(data);

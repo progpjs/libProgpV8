@@ -53,7 +53,7 @@ int main() {
 
     //progp_DeclareDynamicFunction("draftFunction");
 
-    progp_WaitDebuggerReady();
+    //progp_WaitDebuggerReady();
 
     auto filePath = progpTools_GetCurrentDirectory() + "/stdin.js";
     auto script = progpTools_readFileContent(filePath);

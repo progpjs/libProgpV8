@@ -41,15 +41,15 @@ using tcp = boost::asio::ip::tcp;
 #define PROGP_DEBUG(m) std::cout << "[C-PROGP_DEBUG] - " << m << std::endl
 #define PROGP_LOG_ERROR(FROM, WHAT) std::cout << "ERROR - " << FROM << " - " << WHAT << std::endl
 
-#define V8ISO_ACCESS() \
-    auto v8Iso = gUnsafe_v8Iso; \
+#define V8ISO_ACCESS(progpCtx) \
+    auto v8Iso = progpCtx->v8Iso; \
     v8::Locker locker(v8Iso); \
     v8::Isolate::Scope isolate_scope(v8Iso); \
     v8::HandleScope handle_scope(v8Iso)
 
 #define V8CTX_ACCESS() \
-    V8ISO_ACCESS(); \
-    auto v8Ctx = gUnsafe_v8Ctx->Get(v8Iso); \
+    V8ISO_ACCESS(progpCtx); \
+    auto v8Ctx = progpCtx->v8Ctx.Get(v8Iso); \
     v8::Context::Scope contextScope(v8Ctx)
 
 #define PROGP_V8FUNCTION_BEFORE_V8CTX \
@@ -106,6 +106,11 @@ typedef struct s_progp_v8_eventData {
     s_progp_v8_function* onEventExit;
 } s_progp_v8_eventData;
 
+struct s_progp_context {
+    v8::Isolate* v8Iso;
+    v8::Persistent<v8::Context> v8Ctx;
+};
+
 //endregion
 
 //region C++ <> V8 value
@@ -116,8 +121,8 @@ typedef struct s_progp_v8_eventData {
 #define LONG_TO_V8VALUE(VALUE) v8::Number::New(v8Iso, VALUE)
 #define BOOL_TO_V8VALUE(VALUE) v8::Boolean::New(v8Iso, VALUE)
 
-#define CSTRING_TO_V8VALUE(VALUE) v8::String::NewFromOneByte(gUnsafe_v8Iso, reinterpret_cast<const uint8_t *>(VALUE), v8::NewStringType::kNormal, (int)strlen(VALUE)).ToLocalChecked()
-#define CSTRING_TO_V8VALUE_SIZE(VALUE, SIZE) v8::String::NewFromOneByte(v8Iso, reinterpret_cast<const uint8_t *>(VALUE), v8::NewStringType::kNormal, (int)SIZE).ToLocalChecked()
+#define CSTRING_TO_V8VALUE(VALUE) v8::String::NewFromOneByte(progpCtx->v8Iso, reinterpret_cast<const uint8_t *>(VALUE), v8::NewStringType::kNormal, (int)strlen(VALUE)).ToLocalChecked()
+#define CSTRING_TO_V8VALUE_SIZE(VALUE, SIZE) v8::String::NewFromOneByte(progpCtx->v8Iso, reinterpret_cast<const uint8_t *>(VALUE), v8::NewStringType::kNormal, (int)SIZE).ToLocalChecked()
 
 //endregion
 
@@ -125,29 +130,29 @@ typedef struct s_progp_v8_eventData {
 
 const char* progpV8Value_GetTypeName(v8::Local<v8::Value> &value);
 
-#define V8VALUE_TO_UTF8STRING(V8_STRING)        (v8::String::Utf8Value(v8Iso, V8_STRING))
+#define V8VALUE_TO_UTF8STRING(V8_STRING)        (v8::String::Utf8Value(progpCtx->v8Iso, V8_STRING))
 #define V8VALUE_TO_CSTRING(V8_STRING)           (*(V8VALUE_TO_UTF8STRING(V8_STRING)))
 
 #define V8VALUE_TO_INT32(VALUE)                 VALUE.Get(iso)->Int32Value(context).ToChecked()
-#define V8VALUE_FROM_INT32(VALUE)               v8::Integer::New(v8Iso, VALUE)
+#define V8VALUE_FROM_INT32(VALUE)               v8::Integer::New(progpCtx->v8Iso, VALUE)
 
 #define V8VALUE_TO_INT(VALUE)                   V8VALUE_TO_INT32(VALUE)
 #define V8VALUE_FROM_INT(VALUE)                 V8VALUE_FROM_INT32(VALUE)
 
 #define V8VALUE_TO_DOUBLE(VALUE)                VALUE.Get(v8Iso)->NumberValue(context).ToChecked()
-#define V8VALUE_FROM_DOUBLE(VALUE)              v8::Number::New(v8Iso, VALUE)
+#define V8VALUE_FROM_DOUBLE(VALUE)              v8::Number::New(progpCtx->v8Iso, VALUE)
 
-#define V8VALUE_FROM_CHARPTR(VALUE)              v8::String::NewFromUtf8(v8Iso, (const char*)VALUE).ToLocalChecked()
-#define V8VALUE_FROM_SIZEDSTRING(VALUE, SIZE)    v8::String::NewFromUtf8(v8Iso, VALUE, v8::NewStringType::kNormal, (int)SIZE).ToLocalChecked()
+#define V8VALUE_FROM_CHARPTR(VALUE)              v8::String::NewFromUtf8(progpCtx->v8Iso, (const char*)VALUE).ToLocalChecked()
+#define V8VALUE_FROM_SIZEDSTRING(VALUE, SIZE)    v8::String::NewFromUtf8(progpCtx->v8Iso, VALUE, v8::NewStringType::kNormal, (int)SIZE).ToLocalChecked()
 
-#define V8VALUE_FROM_BOOL(VALUE)                v8::Boolean::New(v8Iso, VALUE)
+#define V8VALUE_FROM_BOOL(VALUE)                v8::Boolean::New(progpCtx->v8Iso, VALUE)
 
-#define V8VALUE_FROM_GOSTRING(VALUE)            v8::String::NewFromUtf8(v8Iso, ((s_progp_goString*)VALUE)->p, v8::NewStringType::kNormal, (int)((s_progp_goString*)VALUE)->n).ToLocalChecked()
+#define V8VALUE_FROM_GOSTRING(VALUE)            v8::String::NewFromUtf8(progpCtx->v8Iso, ((s_progp_goString*)VALUE)->p, v8::NewStringType::kNormal, (int)((s_progp_goString*)VALUE)->n).ToLocalChecked()
 
 #define V8VALUE_FROM_GOCUSTOM(OUT, VALUE, SIZE) \
     { \
         auto mayBeJson = v8::JSON::Parse(v8Ctx, CSTRING_TO_V8VALUE_SIZE((const char*)VALUE, SIZE)); \
-        if (mayBeJson.IsEmpty()) OUT = Undefined(v8Iso); \
+        if (mayBeJson.IsEmpty()) OUT = Undefined(progpCtx->v8Iso); \
         else OUT = mayBeJson.ToLocalChecked(); \
     }
 
@@ -518,6 +523,8 @@ s_progp_anyValue progp_AnyValueFromV8Value(const v8::Local<v8::Context> &v8Ctx, 
 void progp_handleDraftFunction(const v8::FunctionCallbackInfo<v8::Value> &callInfo);
 
 //endregion
+
+ProgpContext progp_GetCurrentContext();
 
 void progp_AddFunction(const char* functionName, f_progp_v8_function functionRef);
 void progp_AddFunctionToObject(const char* groupName, const v8::Local<v8::Object> &v8Object, const char* functionName, f_progp_v8_function functionRef);

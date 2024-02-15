@@ -23,6 +23,7 @@
 void JsProgpPrint(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
     PROGP_V8FUNCTION_BEFORE_V8CTX
 
+        auto progpCtx = progp_GetCurrentContext();
         int argsCount = callInfo.Length();
 
         for (int i = 0; i < argsCount; i++) {
@@ -53,6 +54,7 @@ void JsProgpPrint(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
 void JsProgpGetModule(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
     PROGP_V8FUNCTION_BEFORE_V8CTX
 
+        auto progpCtx = progp_GetCurrentContext();
         V8CALLARG_EXPECT_CSTRING(modName, 0);
 
         auto v8Object = v8::Object::New(v8Iso);
