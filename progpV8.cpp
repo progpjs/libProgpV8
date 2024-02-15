@@ -156,7 +156,7 @@ void progp_DecreaseContextRef() {
             gProgpCtx->event = evt->previousEvent;
 
             if (g_onEventFinished!=nullptr) g_onEventFinished(evt->id);
-            
+
             delete(evt);
         }
     }

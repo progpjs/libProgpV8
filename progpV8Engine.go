@@ -269,7 +269,7 @@ func (m *v8Isolate) ExecuteScript(scriptContent string, compiledFilePath string,
 }
 
 func (m *v8Isolate) ExecuteScriptFile(iso progpAPI.ScriptIsolate, scriptPath string) *progpAPI.ScriptErrorMessage {
-	// It's required since script translation is in libProgpScripts and not progpAPI.
+	// It's required since script translation is in progpScripts and not progpAPI.
 	ex := progpAPI.GetScriptFileExecutor()
 	return ex(iso, scriptPath)
 }
