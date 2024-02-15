@@ -57,7 +57,7 @@ int main() {
 
     auto filePath = progpTools_GetCurrentDirectory() + "/stdin.js";
     auto script = progpTools_readFileContent(filePath);
-    progp_ExecuteScript(script.c_str(), filePath.c_str());
+    progp_ExecuteScript(script.c_str(), filePath.c_str(), 0);
 
     return 0;
 }

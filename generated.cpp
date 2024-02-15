@@ -281,11 +281,11 @@ void v8Function_94(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
 	PROGP_V8FUNCTION_BEFORE_PROGPCTX
 
     V8CALLARG_EXPECT_ARGCOUNT(1);
-    V8CALLARG_EXPECT_FUNCTION(p0, 0);
+    V8CALLARG_EXPECT_FUNCTION(p1, 0);
 
 	ProgpFunctionReturnVoid resWrapper{};
 	resWrapper.currentEvent = progpCtx->event;
-	progpCgoBinding__94(&resWrapper, p0);
+	progpCgoBinding__94(&resWrapper, p1);
 	
     if (resWrapper.errorMessage!=nullptr) {
 		auto msg = std::string(resWrapper.errorMessage);

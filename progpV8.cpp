@@ -83,6 +83,9 @@ void progp_StartupEngine() {
     // It's why we always bind an event to a ProgpContext.
     //
     gProgpCtx->event = new s_progp_event();
+    gProgpCtx->event->id = 0;
+    gProgpCtx->event->refCount = 0;
+    gProgpCtx->event->previousEvent = nullptr;
 
     // Create the v8-isolate.
     {
@@ -169,8 +172,9 @@ void progp_DecreaseContextRef() {
 }
 
 extern "C"
-bool progp_ExecuteScript(const char* scriptContent, const char* scriptOrigin) {
+bool progp_ExecuteScript(const char* scriptContent, const char* scriptOrigin, uintptr_t eventId) {
     auto progpCtx = gProgpCtx;
+    progpCtx->event->id = eventId;
     progp_IncreaseContextRef();
     V8CTX_ACCESS();
 
@@ -488,6 +492,8 @@ extern "C"
 void progp_CallAsEventFunction(s_progp_v8_function* functionRef, uintptr_t eventId) {
     auto newEvent = new s_progp_event();
     newEvent->id = eventId;
+    newEvent->refCount = 0;
+    newEvent->previousEvent = nullptr;
 
     auto progpCtx = gProgpCtx;
     V8CTX_ACCESS();

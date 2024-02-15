@@ -67,6 +67,13 @@ typedef struct s_progp_context s_progp_context;
 typedef s_progp_context* ProgpContext;
 
 typedef struct s_progp_event s_progp_event;
+
+typedef struct s_progp_event {
+    uintptr_t id;
+    int refCount;
+    s_progp_event* previousEvent;
+} s_progp_event;
+
 typedef s_progp_event* ProgpEvent;
 
 typedef struct s_progp_anyValue {
@@ -186,7 +193,7 @@ void progp_DecreaseContextRef();
 
 const char* progp_GetV8EngineVersion();
 
-bool progp_ExecuteScript(const char* scriptContent, const char* scriptOrigin);
+bool progp_ExecuteScript(const char* scriptContent, const char* scriptOrigin, uintptr_t eventId);
 
 void progp_WaitDebuggerReady();
 

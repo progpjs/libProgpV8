@@ -109,10 +109,10 @@ func progpCgoBinding__80(res *C.ProgpFunctionReturnArrayBuffer, p0 C.ProgpV8Buff
     res.size = C.int(len(goRes))
 }
 //export progpCgoBinding__94
-func progpCgoBinding__94(res *C.ProgpFunctionReturnVoid, p0 C.ProgpV8FunctionPtr) {
+func progpCgoBinding__94(res *C.ProgpFunctionReturnVoid, p1 C.ProgpV8FunctionPtr) {
 	defer progpAPI.CatchFatalErrors()
 
-	modSamples.JsTestEventFunction(newV8Function(res.isAsync, p0, res.currentEvent))
+	modSamples.JsTestEventFunction(getSharedResourceContainer(res.currentEvent.id), newV8Function(res.isAsync, p1, res.currentEvent))
 
 }
 //export progpCgoBinding__72

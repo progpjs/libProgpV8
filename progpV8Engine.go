@@ -198,6 +198,10 @@ func exitCurrentIsolate() {
 	gCurrentScriptMutex.Unlock()
 }
 
+func getSharedResourceContainer(cEventId C.uintptr_t) *progpAPI.SharedResourceContainer {
+	return (*progpAPI.SharedResourceContainer)(unsafe.Pointer(uintptr(cEventId)))
+}
+
 var gCurrentScriptMutex sync.Mutex
 var gCurrentScriptCallerIsWaiting bool
 
@@ -216,11 +220,16 @@ const cInt1 = C.int(1)
 
 //region V8Isolate
 
-var gV8Isolate = &v8Isolate{}
+var gV8Isolate = newV8Isolate()
 var gIsFirstCreatedIsolate = true
 
 type v8Isolate struct {
-	executingMutex sync.Mutex
+	executingMutex          sync.Mutex
+	sharedResourceContainer *progpAPI.SharedResourceContainer
+}
+
+func newV8Isolate() *v8Isolate {
+	return &v8Isolate{sharedResourceContainer: progpAPI.NewSharedResourceContainer(nil)}
 }
 
 func (m *v8Isolate) GetScriptEngine() progpAPI.ScriptEngine {
@@ -252,7 +261,7 @@ func (m *v8Isolate) ExecuteScript(scriptContent string, compiledFilePath string,
 		cCompiledFilePath := C.CString(compiledFilePath)
 		defer C.free(unsafe.Pointer(cCompiledFilePath))
 
-		C.progp_ExecuteScript(cScriptContent, cCompiledFilePath)
+		C.progp_ExecuteScript(cScriptContent, cCompiledFilePath, C.uintptr_t(uintptr(unsafe.Pointer(m.sharedResourceContainer))))
 	})
 
 	// Is unlocked by "cppCallOnNoMoreTask".
@@ -461,13 +470,16 @@ func (m *v8Function) KeepAlive() {
 	m.mustDisposeFunction = cInt0
 }
 
-func (m *v8Function) CallAsEventFunction(eventId int) {
+func (m *v8Function) CallAsEventFunction() {
 	functionPtr := m.prepareCall()
 	if functionPtr == nil {
 		return
 	}
 
-	C.progp_CallAsEventFunction(functionPtr, C.uintptr_t(eventId))
+	currentContainer := getSharedResourceContainer(m.currentEvent.id)
+	container := progpAPI.NewSharedResourceContainer(currentContainer)
+
+	C.progp_CallAsEventFunction(functionPtr, C.uintptr_t(uintptr(unsafe.Pointer(container))))
 }
 
 //endregion
@@ -745,26 +757,40 @@ func cppOnDynamicFunctionCalled(cFunctionName *C.char, cAnyValueArray *C.s_progp
 	}
 	parserFunctionInfos := fctRef.GoFunctionInfos
 
-	expectedInputSize := len(parserFunctionInfos.ParamTypes)
-	size := int(cValueCount)
+	inputParamsCount := len(parserFunctionInfos.ParamTypes)
+	expectedInputSize := inputParamsCount
+	providedParamCount := int(cValueCount)
 
-	if size != expectedInputSize {
-		if size > expectedInputSize {
-			size = expectedInputSize
+	for _, pt := range parserFunctionInfos.ParamTypes {
+		// It a virtual parameter so decrease the counter for him.
+		if pt == "*progpAPI.SharedResourceContainer" {
+			expectedInputSize--
+		}
+	}
+
+	if providedParamCount != expectedInputSize {
+		if providedParamCount > expectedInputSize {
+			providedParamCount = expectedInputSize
 		} else {
 			return createErrorAnyValue(fmt.Sprintf("%d argument expected", expectedInputSize))
 		}
 	}
 
-	var values = make([]reflect.Value, size)
+	var values = make([]reflect.Value, inputParamsCount)
 
-	for i := 0; i < size; i++ {
+	for i := 0; i < inputParamsCount; i++ {
+		paramType := parserFunctionInfos.ParamTypes[i]
+		if paramType == "*progpAPI.SharedResourceContainer" {
+			values[i] = reflect.ValueOf(getSharedResourceContainer(currentEvent.id))
+			continue
+		}
+
 		// Here we work with reflect.Value because of struct values
 		// which must be differentiated from pointer on value, something
 		// which can't be done if returning an any.
 		//
 		var err error
-		values[i], err = decodeAnyValue(cAnyValueArray, parserFunctionInfos.ParamTypes[i], parserFunctionInfos.ParamTypeRefs[i], fctRef.IsAsync, currentEvent)
+		values[i], err = decodeAnyValue(cAnyValueArray, paramType, parserFunctionInfos.ParamTypeRefs[i], fctRef.IsAsync, currentEvent)
 
 		if err != nil {
 			return createErrorAnyValue(err.Error())
@@ -838,8 +864,10 @@ func cppCheckAllowedFunction(cSecurityGroup *C.char, cFunctionGroup *C.char, cFu
 
 //export cppOnEventFinished
 func cppOnEventFinished(cEventId C.uintptr_t) {
-	eventId := int(cEventId)
-	println("Event finished: ", eventId)
+	rc := getSharedResourceContainer(cEventId)
+	rc.Dispose()
+
+	println("Event finished: ", int(cEventId))
 }
 
 //endregion

@@ -104,12 +104,6 @@ struct s_progp_v8_function {
     v8::Persistent<v8::Function> ref;
 };
 
-struct s_progp_event {
-    uintptr_t id = 0;
-    int refCount = 0;
-    s_progp_event* previousEvent{};
-};
-
 struct s_progp_context {
     v8::Isolate* v8Iso;
     v8::Persistent<v8::Context> v8Ctx;
