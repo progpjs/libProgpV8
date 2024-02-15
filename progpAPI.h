@@ -21,6 +21,8 @@
 //
 #include <stddef.h> // NOLINT(*-deprecated-headers)
 
+#include <stdint.h> // NOLINT(*-deprecated-headers)
+
 #if __cplusplus
 extern "C" {
 #else
@@ -64,7 +66,8 @@ typedef s_progp_v8_function* ProgpV8FunctionPtr;
 typedef struct s_progp_context s_progp_context;
 typedef s_progp_context* ProgpContext;
 
-typedef struct s_progp_v8_eventData s_progp_v8_eventData;
+typedef struct s_progp_event s_progp_event;
+typedef s_progp_event* ProgpEvent;
 
 typedef struct s_progp_anyValue {
     int valueType;
@@ -98,8 +101,9 @@ int progp_GetSizeOfAnyValueStruct();
 //region Function types
 
 typedef void (*f_progp_noParamNoReturn)();
+typedef void (*f_progp_eventFinished)(uintptr_t eventId);
 typedef void (*f_progp_javascriptErrorListener)(s_progp_v8_errorMessage* error);
-typedef s_progp_anyValue (*f_draftFunctionListener)(char* functionName, s_progp_anyValue* anyValueArray, int valueCount);
+typedef s_progp_anyValue (*f_draftFunctionListener)(char* functionName, s_progp_anyValue* anyValueArray, int valueCount, ProgpEvent currentEvent);
 
 //endregion
 
@@ -107,7 +111,7 @@ typedef s_progp_anyValue (*f_draftFunctionListener)(char* functionName, s_progp_
 
 #define ProgpFunctionReturn char *errorMessage; \
 const char *constErrorMessage;  \
-s_progp_v8_eventData *eventData;  \
+s_progp_event *currentEvent;\
 void* eventDisposer;  \
 bool isAsync;  \
 int contextId;
@@ -147,8 +151,9 @@ typedef struct ProgpFunctionReturnArrayBuffer {
 
 //region Calling function from Golang
 
-#define FCT_CALLBACK_PARAMS s_progp_v8_function* functionRef, bool mustDecreaseTaskCount, bool mustDisposeFunction
+#define FCT_CALLBACK_PARAMS s_progp_v8_function* functionRef, bool mustDecreaseTaskCount, bool mustDisposeFunction, ProgpEvent eventToRestore
 
+void progp_CallAsEventFunction(s_progp_v8_function* functionRef, uintptr_t eventId);
 void progp_CallFunctionWithUndefined(FCT_CALLBACK_PARAMS);
 void progp_CallFunctionWithErrorP1(FCT_CALLBACK_PARAMS, const char* str, size_t strLen);
 void progp_CallFunctionWithStringP2(FCT_CALLBACK_PARAMS, const char* str, size_t strLen);

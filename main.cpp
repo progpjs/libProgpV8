@@ -18,7 +18,7 @@
 #include "./progpV8.h"
 #include "./progpTools.h"
 
-s_progp_anyValue draftFunctionListener(char* functionName, s_progp_anyValue* anyValueArray, int valueCount)  {
+s_progp_anyValue draftFunctionListener(char* functionName, s_progp_anyValue* anyValueArray, int valueCount, ProgpEvent currentEvent)  {
     auto text = std::string("hello function ") + functionName+ "!";
 
     s_progp_anyValue res;

@@ -58,8 +58,18 @@ using tcp = boost::asio::ip::tcp;
     v8::Locker locker(v8Iso); \
     v8::Isolate::Scope isolate_scope(v8Iso); \
     v8::HandleScope handle_scope(v8Iso); \
-    v8::Context::Scope contextScope(v8Ctx); \
-    try { \
+    v8::Context::Scope contextScope(v8Ctx);  \
+    try {
+
+#define PROGP_V8FUNCTION_BEFORE_PROGPCTX \
+    auto v8Iso = callInfo.GetIsolate(); \
+    auto v8Ctx = v8Iso->GetCurrentContext(); \
+    v8::Locker locker(v8Iso); \
+    v8::Isolate::Scope isolate_scope(v8Iso); \
+    v8::HandleScope handle_scope(v8Iso); \
+    v8::Context::Scope contextScope(v8Ctx);  \
+    ProgpContext progpCtx = (ProgpContext) v8Ctx->GetEmbedderData(0).As<v8::External>()->Value(); \
+    try {
 
 #define PROGP_V8FUNCTION_BEFORE \
     auto v8Iso = callInfo.GetIsolate(); \
@@ -94,21 +104,16 @@ struct s_progp_v8_function {
     v8::Persistent<v8::Function> ref;
 };
 
-typedef struct s_progp_v8_eventData {
-    /**
-     * The V8 object use by the javascript.
-     */
-    v8::Persistent<v8::Value> data;
-
-    /**
-     * Is called when the event exit.
-     */
-    s_progp_v8_function* onEventExit;
-} s_progp_v8_eventData;
+struct s_progp_event {
+    uintptr_t id = 0;
+    int refCount = 0;
+    s_progp_event* previousEvent{};
+};
 
 struct s_progp_context {
     v8::Isolate* v8Iso;
     v8::Persistent<v8::Context> v8Ctx;
+    s_progp_event* event{};
 };
 
 //endregion
@@ -492,6 +497,7 @@ void progpConfig_OnNoMoreTask(f_progp_noParamNoReturn listener);
 void progpConfig_SetDraftFunctionListener(f_draftFunctionListener listener);
 void progpConfig_SetDynamicFunctionProvider(f_progp_v8_dynamicFunctions_provider handler);
 void progpConfig_SetAllowedFunctionChecker(f_progp_v8_function_allowedFunctionChecker handler);
+void progpConfig_OnEventFinished(f_progp_eventFinished listener);
 
 //endregion
 

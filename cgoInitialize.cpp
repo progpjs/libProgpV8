@@ -29,6 +29,7 @@ void cgoInitialize() {
     progpConfig_SetDraftFunctionListener(cppOnDynamicFunctionCalled);
     progpConfig_SetDynamicFunctionProvider(cppOnDynamicFunctionProviderRequested);
     progpConfig_SetAllowedFunctionChecker(cppCheckAllowedFunction);
+    progpConfig_OnEventFinished(cppOnEventFinished);
 }
 
 #endif // !PROGP_STANDALONE

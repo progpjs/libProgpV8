@@ -79,6 +79,11 @@ void progp_StartupEngine() {
 
     gProgpCtx = new s_progp_context();
 
+    // Always having a event allow generalizing some mechanisms.
+    // It's why we always bind an event to a ProgpContext.
+    //
+    gProgpCtx->event = new s_progp_event();
+
     // Create the v8-isolate.
     {
         v8::Isolate::CreateParams params;
@@ -103,6 +108,8 @@ void progp_StartupEngine() {
         v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(v8Iso);
         auto v8Ctx = v8::Context::New(v8Iso, nullptr, global);
         gProgpCtx->v8Ctx.Reset(v8Iso, v8Ctx);
+
+        v8Ctx->SetEmbedderData(0, v8::External::New(v8Iso, gProgpCtx));
     }
 
 #ifndef PROGP_STANDALONE
@@ -122,34 +129,47 @@ const char* progp_GetV8EngineVersion() {
 //region Executing scripts
 
 int gContextRefCount;
-std::mutex gContextRefCountMutex;
 
-std::string gCurrentScriptPath;
 f_progp_noParamNoReturn g_onNoMoreTask = nullptr;
+f_progp_eventFinished g_onEventFinished = nullptr;
 
 extern "C"
 void progp_IncreaseContextRef() {
     //std::lock_guard autoUnlock(gContextRefCountMutex);
 
     // Here we are thread safe since caller use
-    // a funnel in order that only one thread can speak to the VM.
+    // a funnel doing that only one thread can speak to the VM.
     gContextRefCount++;
+
+    if (gProgpCtx->event!= nullptr) {
+        gProgpCtx->event->refCount++;
+    }
 }
 
 extern "C"
 void progp_DecreaseContextRef() {
-    //std::lock_guard autoUnlock(gContextRefCountMutex);
+    if (gProgpCtx->event!= nullptr) {
+        gProgpCtx->event->refCount--;
+
+        if (gProgpCtx->event->refCount==0) {
+            auto evt = gProgpCtx->event;
+            gProgpCtx->event = evt->previousEvent;
+
+            if (g_onEventFinished!=nullptr) g_onEventFinished(evt->id);
+            
+            delete(evt);
+        }
+    }
 
     gContextRefCount--;
 
-    if ((gContextRefCount==0) && (g_onNoMoreTask!=nullptr)) {
-        g_onNoMoreTask();
+    if (gContextRefCount==0) {
+        if (g_onNoMoreTask != nullptr) g_onNoMoreTask();
     }
 }
 
 extern "C"
 bool progp_ExecuteScript(const char* scriptContent, const char* scriptOrigin) {
-    gCurrentScriptPath = scriptOrigin;
     auto progpCtx = gProgpCtx;
     progp_IncreaseContextRef();
     V8CTX_ACCESS();
@@ -366,11 +386,12 @@ s_progp_v8_function* progpFunctions_NewPointer(const v8::Local<v8::Function> &v8
 
 //region Functions: call from external / callbacks
 
-#define FCT_CALLBACK_PARAMS s_progp_v8_function* functionRef, bool mustDecreaseTaskCount, bool mustDisposeFunction
+#define FCT_CALLBACK_PARAMS s_progp_v8_function* functionRef, bool mustDecreaseTaskCount, bool mustDisposeFunction, ProgpEvent eventToRestore
 
 #define FCT_CALLBACK_BEFORE \
     auto progpCtx = gProgpCtx; \
-    V8CTX_ACCESS();         \
+    V8CTX_ACCESS(); \
+    progpCtx->event = eventToRestore; \
     v8::TryCatch tryCatch(v8Iso);
 
 #define FCT_CALLBACK_AFTER \
@@ -461,6 +482,32 @@ void progp_CallFunctionWithUndefined(FCT_CALLBACK_PARAMS) {
     auto isEmpty = functionRef->ref.Get(v8Iso)->Call(v8Ctx, v8Ctx->Global(), 0, nullptr).IsEmpty();
 
     FCT_CALLBACK_AFTER
+}
+
+extern "C"
+void progp_CallAsEventFunction(s_progp_v8_function* functionRef, uintptr_t eventId) {
+    auto newEvent = new s_progp_event();
+    newEvent->id = eventId;
+
+    auto progpCtx = gProgpCtx;
+    V8CTX_ACCESS();
+
+    newEvent->previousEvent = progpCtx->event;
+    progpCtx->event = newEvent;
+    v8::TryCatch tryCatch(v8Iso);
+
+    progp_IncreaseContextRef();
+    auto isEmpty = functionRef->ref.Get(v8Iso)->Call(v8Ctx, v8Ctx->Global(), 0, nullptr).IsEmpty();
+
+    if (isEmpty) {
+        if (tryCatch.HasCaught()) {
+            auto catchError = tryCatch.Message();
+            onJavascriptError(v8Ctx, catchError);
+        }
+    }
+
+    // Allow checking is event go through 0.
+    progp_DecreaseContextRef();
 }
 
 //endregion
@@ -1332,7 +1379,7 @@ void progp_handleDraftFunction(const v8::FunctionCallbackInfo<v8::Value> &callIn
             gAnyValue[i] = value;
         }
 
-        auto res = gDraftFunctionListener(functionName, gAnyValue, argCount);
+        auto res = gDraftFunctionListener(functionName, gAnyValue, argCount, progpCtx->event);
 
         if (res.errorMessage!= nullptr) {
             auto v8String = CSTRING_TO_V8VALUE(res.errorMessage);
@@ -1374,6 +1421,10 @@ void progpConfig_OnDebuggerExitedListener(f_progp_noParamNoReturn listener) {
 
 void progpConfig_OnNoMoreTask(f_progp_noParamNoReturn listener) {
     g_onNoMoreTask = listener;
+}
+
+void progpConfig_OnEventFinished(f_progp_eventFinished listener) {
+    g_onEventFinished = listener;
 }
 
 void progpConfig_SetDraftFunctionListener(f_draftFunctionListener listener) {

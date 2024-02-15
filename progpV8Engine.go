@@ -293,12 +293,14 @@ type v8Function struct {
 	isAsync             C.int
 	mustDisposeFunction C.int
 	functionPtr         C.ProgpV8FunctionPtr
+	currentEvent        C.ProgpEvent
 }
 
-func newV8Function(isAsync C.int, ptr C.ProgpV8FunctionPtr) progpAPI.ScriptFunction {
+func newV8Function(isAsync C.int, ptr C.ProgpV8FunctionPtr, currentEvent C.ProgpEvent) progpAPI.ScriptFunction {
 	res := new(v8Function)
 	res.functionPtr = ptr
 	res.isAsync = isAsync
+	res.currentEvent = currentEvent
 
 	// Will be automatically disposed on first call.
 	res.mustDisposeFunction = cInt1
@@ -339,11 +341,11 @@ func (m *v8Function) CallWithString2(value string) {
 	if m.isAsync == cInt1 {
 		gTaskQueue.Push(func() {
 			uPtr := unsafe.Pointer(unsafe.StringData(value))
-			C.progp_CallFunctionWithStringP2(functionPtr, cInt1, m.mustDisposeFunction, (*C.char)(uPtr), C.size_t(len(value)))
+			C.progp_CallFunctionWithStringP2(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent, (*C.char)(uPtr), C.size_t(len(value)))
 		})
 	} else {
 		uPtr := unsafe.Pointer(unsafe.StringData(value))
-		C.progp_CallFunctionWithStringP2(functionPtr, cInt0, m.mustDisposeFunction, (*C.char)(uPtr), C.size_t(len(value)))
+		C.progp_CallFunctionWithStringP2(functionPtr, cInt0, m.mustDisposeFunction, m.currentEvent, (*C.char)(uPtr), C.size_t(len(value)))
 	}
 }
 
@@ -355,10 +357,10 @@ func (m *v8Function) CallWithArrayBuffer2(value []byte) {
 
 	if m.isAsync == cInt1 {
 		gTaskQueue.Push(func() {
-			C.progp_CallFunctionWithArrayBufferP2(functionPtr, cInt1, m.mustDisposeFunction, unsafe.Pointer(&value[0]), C.size_t(len(value)))
+			C.progp_CallFunctionWithArrayBufferP2(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent, unsafe.Pointer(&value[0]), C.size_t(len(value)))
 		})
 	} else {
-		C.progp_CallFunctionWithArrayBufferP2(functionPtr, cInt0, m.mustDisposeFunction, unsafe.Pointer(&value[0]), C.size_t(len(value)))
+		C.progp_CallFunctionWithArrayBufferP2(functionPtr, cInt0, m.mustDisposeFunction, m.currentEvent, unsafe.Pointer(&value[0]), C.size_t(len(value)))
 	}
 }
 
@@ -371,11 +373,11 @@ func (m *v8Function) CallWithStringBuffer2(value []byte) {
 	if m.isAsync == cInt1 {
 		gTaskQueue.Push(func() {
 			uPtr := unsafe.Pointer(&value[0])
-			C.progp_CallFunctionWithStringP2(functionPtr, cInt1, m.mustDisposeFunction, (*C.char)(uPtr), C.size_t(len(value)))
+			C.progp_CallFunctionWithStringP2(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent, (*C.char)(uPtr), C.size_t(len(value)))
 		})
 	} else {
 		uPtr := unsafe.Pointer(&value[0])
-		C.progp_CallFunctionWithStringP2(functionPtr, cInt0, m.mustDisposeFunction, (*C.char)(uPtr), C.size_t(len(value)))
+		C.progp_CallFunctionWithStringP2(functionPtr, cInt0, m.mustDisposeFunction, m.currentEvent, (*C.char)(uPtr), C.size_t(len(value)))
 	}
 }
 
@@ -391,10 +393,10 @@ func (m *v8Function) CallWithDouble2(value float64) {
 
 	if m.isAsync == cInt1 {
 		gTaskQueue.Push(func() {
-			C.progp_CallFunctionWithDoubleP2(functionPtr, cInt1, m.mustDisposeFunction, C.double(value))
+			C.progp_CallFunctionWithDoubleP2(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent, C.double(value))
 		})
 	} else {
-		C.progp_CallFunctionWithDoubleP2(functionPtr, cInt0, m.mustDisposeFunction, C.double(value))
+		C.progp_CallFunctionWithDoubleP2(functionPtr, cInt0, m.mustDisposeFunction, m.currentEvent, C.double(value))
 	}
 }
 
@@ -407,16 +409,16 @@ func (m *v8Function) CallWithBool2(value bool) {
 	if m.isAsync == cInt1 {
 		gTaskQueue.Push(func() {
 			if value {
-				C.progp_CallFunctionWithBoolP2(functionPtr, cInt1, m.mustDisposeFunction, cInt1)
+				C.progp_CallFunctionWithBoolP2(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent, cInt1)
 			} else {
-				C.progp_CallFunctionWithBoolP2(functionPtr, cInt1, m.mustDisposeFunction, cInt0)
+				C.progp_CallFunctionWithBoolP2(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent, cInt0)
 			}
 		})
 	} else {
 		if value {
-			C.progp_CallFunctionWithBoolP2(functionPtr, cInt0, m.mustDisposeFunction, cInt1)
+			C.progp_CallFunctionWithBoolP2(functionPtr, cInt0, m.mustDisposeFunction, m.currentEvent, cInt1)
 		} else {
-			C.progp_CallFunctionWithBoolP2(functionPtr, cInt0, m.mustDisposeFunction, cInt0)
+			C.progp_CallFunctionWithBoolP2(functionPtr, cInt0, m.mustDisposeFunction, m.currentEvent, cInt0)
 		}
 	}
 }
@@ -429,10 +431,10 @@ func (m *v8Function) CallWithUndefined() {
 
 	if m.isAsync == cInt1 {
 		gTaskQueue.Push(func() {
-			C.progp_CallFunctionWithUndefined(functionPtr, cInt1, m.mustDisposeFunction)
+			C.progp_CallFunctionWithUndefined(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent)
 		})
 	} else {
-		C.progp_CallFunctionWithUndefined(functionPtr, cInt0, m.mustDisposeFunction)
+		C.progp_CallFunctionWithUndefined(functionPtr, cInt0, m.mustDisposeFunction, m.currentEvent)
 	}
 }
 
@@ -447,16 +449,25 @@ func (m *v8Function) CallWithError(err error) {
 	if m.isAsync == cInt1 {
 		gTaskQueue.Push(func() {
 			uPtr := unsafe.Pointer(unsafe.StringData(value))
-			C.progp_CallFunctionWithErrorP1(functionPtr, cInt1, m.mustDisposeFunction, (*C.char)(uPtr), C.size_t(len(value)))
+			C.progp_CallFunctionWithErrorP1(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent, (*C.char)(uPtr), C.size_t(len(value)))
 		})
 	} else {
 		uPtr := unsafe.Pointer(unsafe.StringData(value))
-		C.progp_CallFunctionWithErrorP1(functionPtr, cInt0, m.mustDisposeFunction, (*C.char)(uPtr), C.size_t(len(value)))
+		C.progp_CallFunctionWithErrorP1(functionPtr, cInt0, m.mustDisposeFunction, m.currentEvent, (*C.char)(uPtr), C.size_t(len(value)))
 	}
 }
 
 func (m *v8Function) KeepAlive() {
 	m.mustDisposeFunction = cInt0
+}
+
+func (m *v8Function) CallAsEventFunction(eventId int) {
+	functionPtr := m.prepareCall()
+	if functionPtr == nil {
+		return
+	}
+
+	C.progp_CallAsEventFunction(functionPtr, C.uintptr_t(eventId))
 }
 
 //endregion
@@ -472,7 +483,7 @@ func createErrorAnyValue(error string) C.s_progp_anyValue {
 	return ev
 }
 
-func decodeAnyValue(value *C.s_progp_anyValue, expectedTypeName string, expectedTypeRef reflect.Type, isAsync bool) (reflect.Value, error) {
+func decodeAnyValue(value *C.s_progp_anyValue, expectedTypeName string, expectedTypeRef reflect.Type, isAsync bool, currentEvent C.ProgpEvent) (reflect.Value, error) {
 	valueType := AnyValueType(value.valueType)
 
 	switch valueType {
@@ -576,9 +587,9 @@ func decodeAnyValue(value *C.s_progp_anyValue, expectedTypeName string, expected
 		var asRealValue progpAPI.ScriptFunction
 
 		if isAsync {
-			asRealValue = newV8Function(cInt1, C.ProgpV8FunctionPtr(value.voidPtr))
+			asRealValue = newV8Function(cInt1, C.ProgpV8FunctionPtr(value.voidPtr), currentEvent)
 		} else {
-			asRealValue = newV8Function(cInt0, C.ProgpV8FunctionPtr(value.voidPtr))
+			asRealValue = newV8Function(cInt0, C.ProgpV8FunctionPtr(value.voidPtr), currentEvent)
 		}
 
 		return reflect.ValueOf(asRealValue), nil
@@ -724,7 +735,7 @@ func cppOnDynamicFunctionProviderRequested(cGroupName *C.char) {
 // Go function.
 //
 //export cppOnDynamicFunctionCalled
-func cppOnDynamicFunctionCalled(cFunctionName *C.char, cAnyValueArray *C.s_progp_anyValue, cValueCount C.int) C.s_progp_anyValue {
+func cppOnDynamicFunctionCalled(cFunctionName *C.char, cAnyValueArray *C.s_progp_anyValue, cValueCount C.int, currentEvent C.ProgpEvent) C.s_progp_anyValue {
 	functionName := C.GoString(cFunctionName)
 	registry := progpAPI.GetFunctionRegistry()
 	fctRef := registry.GetRefToFunction(functionName)
@@ -753,7 +764,7 @@ func cppOnDynamicFunctionCalled(cFunctionName *C.char, cAnyValueArray *C.s_progp
 		// which can't be done if returning an any.
 		//
 		var err error
-		values[i], err = decodeAnyValue(cAnyValueArray, parserFunctionInfos.ParamTypes[i], parserFunctionInfos.ParamTypeRefs[i], fctRef.IsAsync)
+		values[i], err = decodeAnyValue(cAnyValueArray, parserFunctionInfos.ParamTypes[i], parserFunctionInfos.ParamTypeRefs[i], fctRef.IsAsync, currentEvent)
 
 		if err != nil {
 			return createErrorAnyValue(err.Error())
@@ -823,6 +834,12 @@ func cppCheckAllowedFunction(cSecurityGroup *C.char, cFunctionGroup *C.char, cFu
 	}
 
 	return cInt1
+}
+
+//export cppOnEventFinished
+func cppOnEventFinished(cEventId C.uintptr_t) {
+	eventId := int(cEventId)
+	println("Event finished: ", eventId)
 }
 
 //endregion
