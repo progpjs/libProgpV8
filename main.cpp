@@ -40,7 +40,7 @@ void JsTest(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
 
 void createTestFunctions(const std::string &group, v8::Local<v8::Object> v8Host) {
     if (group=="global") {
-        progp_AddFunctionToObject(v8Host, "test", JsTest);
+        PROGP_BIND_FUNCTION("global", "test", JsTest);
     }
 }
 

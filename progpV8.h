@@ -75,8 +75,7 @@ using tcp = boost::asio::ip::tcp;
     }
 
 #define PROGP_BIND_FUNCTION(GROUP, NAME, FCT_REF) \
-    /*if (group==GROUP) PROGP_PRINT("Registering function " << NAME << " group " << GROUP);*/ \
-    if (group==GROUP) progp_AddFunctionToObject(v8Host, NAME, FCT_REF)
+    if (group==GROUP) progp_AddFunctionToObject(GROUP, v8Host, NAME, FCT_REF)
 
 //endregion
 
@@ -85,6 +84,7 @@ using tcp = boost::asio::ip::tcp;
 typedef void (*f_progp_v8_function)(const v8::FunctionCallbackInfo<v8::Value> &callInfo);
 typedef void (*f_progp_v8_functions_provider)(const std::string &group, const v8::Local<v8::Object> v8Object);
 typedef void (*f_progp_v8_dynamicFunctions_provider)(char* group);
+typedef int (*f_progp_v8_function_allowedFunctionChecker)(char* securityGroup, char* functionGroup, char* functionName);
 
 //endregion
 
@@ -486,6 +486,7 @@ void progpConfig_OnDebuggerExitedListener(f_progp_noParamNoReturn listener);
 void progpConfig_OnNoMoreTask(f_progp_noParamNoReturn listener);
 void progpConfig_SetDraftFunctionListener(f_draftFunctionListener listener);
 void progpConfig_SetDynamicFunctionProvider(f_progp_v8_dynamicFunctions_provider handler);
+void progpConfig_SetAllowedFunctionChecker(f_progp_v8_function_allowedFunctionChecker handler);
 
 //endregion
 
@@ -519,7 +520,7 @@ void progp_handleDraftFunction(const v8::FunctionCallbackInfo<v8::Value> &callIn
 //endregion
 
 void progp_AddFunction(const char* functionName, f_progp_v8_function functionRef);
-void progp_AddFunctionToObject(const v8::Local<v8::Object> &v8Object, const char* functionName, f_progp_v8_function functionRef);
+void progp_AddFunctionToObject(const char* groupName, const v8::Local<v8::Object> &v8Object, const char* functionName, f_progp_v8_function functionRef);
 
 void progp_CreateFunctionGroup(const std::string& group, const v8::Local<v8::Object> &v8Object);
 void progp_CreateFunctionGroup_Internal(const std::string& group, v8::Local<v8::Object> v8Host);

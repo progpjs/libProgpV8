@@ -33,14 +33,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	_ "github.com/progpjs/libProgpV8/libs/darwin_arm64"
-	_ "github.com/progpjs/libProgpV8/libs/linux_arm64"
-	_ "github.com/progpjs/libProgpV8/libs/linux_x86_64"
-	"github.com/progpjs/progpAPI"
 	"reflect"
 	"runtime"
 	"sync"
 	"unsafe"
+
+	_ "github.com/progpjs/libProgpV8/libs/darwin_arm64"
+	_ "github.com/progpjs/libProgpV8/libs/linux_arm64"
+	_ "github.com/progpjs/libProgpV8/libs/linux_x86_64"
+	"github.com/progpjs/progpAPI"
 )
 
 //region V8Engine
@@ -145,6 +146,10 @@ func (m *V8Engine) SetScriptTerminatedHandler(handler progpAPI.ScriptTerminatedH
 	m.scriptTerminatedHandler = handler
 }
 
+func (m *V8Engine) SetAllowedFunctionsChecker(handler progpAPI.CheckAllowedFunctionsF) {
+	gallowedFunctionsChecker = handler
+}
+
 func asScriptErrorMessage(ptr *C.s_progp_v8_errorMessage) *progpAPI.ScriptErrorMessage {
 	m := progpAPI.NewScriptErrorMessage(gV8Isolate)
 
@@ -202,6 +207,7 @@ var gTaskQueue *progpAPI.TaskQueue
 var gShutdownMutex sync.Mutex
 var gSizeOfAnyValueStruct int
 var gFunctionRegistry = progpAPI.GetFunctionRegistry()
+var gallowedFunctionsChecker progpAPI.CheckAllowedFunctionsF
 
 const cInt0 = C.int(0)
 const cInt1 = C.int(1)
@@ -800,6 +806,23 @@ func cppOnDynamicFunctionCalled(cFunctionName *C.char, cAnyValueArray *C.s_progp
 	}
 
 	return encodeAnyValue(resultValues[0])
+}
+
+//export cppCheckAllowedFunction
+func cppCheckAllowedFunction(cSecurityGroup *C.char, cFunctionGroup *C.char, cFunctionName *C.char) C.int {
+	if gallowedFunctionsChecker != nil {
+		securityGroup := C.GoString(cSecurityGroup)
+		functionGroup := C.GoString(cFunctionGroup)
+		cFunctionName := C.GoString(cFunctionName)
+
+		if gallowedFunctionsChecker(securityGroup, functionGroup, cFunctionName) {
+			return cInt1
+		}
+
+		return cInt0
+	}
+
+	return cInt1
 }
 
 //endregion

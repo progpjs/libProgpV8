@@ -43,6 +43,7 @@ std::unique_ptr<v8::Platform> gV8Platform;
 v8::ArrayBuffer::Allocator *gArrayBufferAllocator;
 f_progp_v8_functions_provider gV8FunctionProvider = nullptr;
 f_progp_v8_dynamicFunctions_provider gV8DynamicFunctionProvider = nullptr;
+f_progp_v8_function_allowedFunctionChecker gV8AllowedFunctionChecker = nullptr;
 
 v8::Isolate* gUnsafe_v8Iso;
 v8::Persistent<v8::Context>* gUnsafe_v8Ctx;
@@ -278,7 +279,14 @@ void progp_PrintErrorMessage(s_progp_v8_errorMessage* msg) {
 
 //region Functions: declaring news functions
 
-void progp_AddFunctionToObject(const v8::Local<v8::Object> &v8Object, const char* functionName, f_progp_v8_function functionRef) {
+void progp_AddFunctionToObject(const char* groupName, const v8::Local<v8::Object> &v8Object, const char* functionName, f_progp_v8_function functionRef) {
+    // Detect if the function is allowed.
+    //
+    if (gV8AllowedFunctionChecker!= nullptr) {
+        std::string securityGroup;
+        if (!gV8AllowedFunctionChecker((char*)securityGroup.c_str(), (char*)groupName, (char*)functionName)) return;
+    }
+
     V8CTX_ACCESS();
 
     auto v8FunctionTemplate = v8::FunctionTemplate::New(v8Iso, functionRef);
@@ -1332,6 +1340,10 @@ void progpConfig_SetJavascriptFunctionProvider(f_progp_v8_functions_provider han
 
 void progpConfig_SetDynamicFunctionProvider(f_progp_v8_dynamicFunctions_provider handler) {
     gV8DynamicFunctionProvider = handler;
+}
+
+void progpConfig_SetAllowedFunctionChecker(f_progp_v8_function_allowedFunctionChecker handler) {
+    gV8AllowedFunctionChecker = handler;
 }
 
 void progpConfig_OnDebuggerExitedListener(f_progp_noParamNoReturn listener) {
