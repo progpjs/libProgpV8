@@ -38,7 +38,7 @@ void v8Function_1(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
 
 	ProgpFunctionReturnVoid resWrapper{};
 
-    progp_IncreaseContextRef();
+    progp_IncreaseContextRef(progpCtx);
     resWrapper.isAsync = true;
 	resWrapper.currentEvent = progpCtx->event;
 	progpCgoBinding__1(&resWrapper, p0, p1);
@@ -255,7 +255,7 @@ void v8Function_90(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
 
 	ProgpFunctionReturnVoid resWrapper{};
 
-    progp_IncreaseContextRef();
+    progp_IncreaseContextRef(progpCtx);
     resWrapper.isAsync = true;
 	resWrapper.currentEvent = progpCtx->event;
 	progpCgoBinding__90(&resWrapper, &p0, p1);
@@ -722,7 +722,7 @@ void v8Function_24(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
 
 	ProgpFunctionReturnVoid resWrapper{};
 
-    progp_IncreaseContextRef();
+    progp_IncreaseContextRef(progpCtx);
     resWrapper.isAsync = true;
 	resWrapper.currentEvent = progpCtx->event;
 	progpCgoBinding__24(&resWrapper, &p0, p1, p2);
@@ -826,7 +826,7 @@ void v8Function_26(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
 
 	ProgpFunctionReturnVoid resWrapper{};
 
-    progp_IncreaseContextRef();
+    progp_IncreaseContextRef(progpCtx);
     resWrapper.isAsync = true;
 	resWrapper.currentEvent = progpCtx->event;
 	progpCgoBinding__26(&resWrapper, &p0, &p1, p2);
@@ -879,7 +879,7 @@ void v8Function_28(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
 
 	ProgpFunctionReturnVoid resWrapper{};
 
-    progp_IncreaseContextRef();
+    progp_IncreaseContextRef(progpCtx);
     resWrapper.isAsync = true;
 	resWrapper.currentEvent = progpCtx->event;
 	progpCgoBinding__28(&resWrapper, &p0, p1, p2, p3);
@@ -932,7 +932,7 @@ void v8Function_32(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
 
 	ProgpFunctionReturnVoid resWrapper{};
 
-    progp_IncreaseContextRef();
+    progp_IncreaseContextRef(progpCtx);
     resWrapper.isAsync = true;
 	resWrapper.currentEvent = progpCtx->event;
 	progpCgoBinding__32(&resWrapper, &p0, &p1, p2);
@@ -983,7 +983,7 @@ void v8Function_20(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
 
 	ProgpFunctionReturnVoid resWrapper{};
 
-    progp_IncreaseContextRef();
+    progp_IncreaseContextRef(progpCtx);
     resWrapper.isAsync = true;
 	resWrapper.currentEvent = progpCtx->event;
 	progpCgoBinding__20(&resWrapper, &p0, p1);
@@ -1035,7 +1035,7 @@ void v8Function_34(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
 
 	ProgpFunctionReturnVoid resWrapper{};
 
-    progp_IncreaseContextRef();
+    progp_IncreaseContextRef(progpCtx);
     resWrapper.isAsync = true;
 	resWrapper.currentEvent = progpCtx->event;
 	progpCgoBinding__34(&resWrapper, &p0, &p1, p2);
@@ -1088,7 +1088,7 @@ void v8Function_40(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
 
 	ProgpFunctionReturnVoid resWrapper{};
 
-    progp_IncreaseContextRef();
+    progp_IncreaseContextRef(progpCtx);
     resWrapper.isAsync = true;
 	resWrapper.currentEvent = progpCtx->event;
 	progpCgoBinding__40(&resWrapper, &p0, p1, &p2, p3);
@@ -1140,7 +1140,7 @@ void v8Function_42(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
 
 	ProgpFunctionReturnVoid resWrapper{};
 
-    progp_IncreaseContextRef();
+    progp_IncreaseContextRef(progpCtx);
     resWrapper.isAsync = true;
 	resWrapper.currentEvent = progpCtx->event;
 	progpCgoBinding__42(&resWrapper, &p0, p1);
@@ -1339,7 +1339,7 @@ void v8Function_22(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
 
 	ProgpFunctionReturnVoid resWrapper{};
 
-    progp_IncreaseContextRef();
+    progp_IncreaseContextRef(progpCtx);
     resWrapper.isAsync = true;
 	resWrapper.currentEvent = progpCtx->event;
 	progpCgoBinding__22(&resWrapper, &p0, p1, p2);
@@ -1394,7 +1394,7 @@ void v8Function_36(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
 
 	ProgpFunctionReturnVoid resWrapper{};
 
-    progp_IncreaseContextRef();
+    progp_IncreaseContextRef(progpCtx);
     resWrapper.isAsync = true;
 	resWrapper.currentEvent = progpCtx->event;
 	progpCgoBinding__36(&resWrapper, &p0, &p1, p2);
@@ -1446,7 +1446,7 @@ void v8Function_30(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
 
 	ProgpFunctionReturnVoid resWrapper{};
 
-    progp_IncreaseContextRef();
+    progp_IncreaseContextRef(progpCtx);
     resWrapper.isAsync = true;
 	resWrapper.currentEvent = progpCtx->event;
 	progpCgoBinding__30(&resWrapper, &p0, &p1, p2);
@@ -1497,7 +1497,7 @@ void v8Function_38(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
 
 	ProgpFunctionReturnVoid resWrapper{};
 
-    progp_IncreaseContextRef();
+    progp_IncreaseContextRef(progpCtx);
     resWrapper.isAsync = true;
 	resWrapper.currentEvent = progpCtx->event;
 	progpCgoBinding__38(&resWrapper, &p0, p1);
@@ -1794,7 +1794,7 @@ void v8Function_15(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
 
 	ProgpFunctionReturnVoid resWrapper{};
 
-    progp_IncreaseContextRef();
+    progp_IncreaseContextRef(progpCtx);
     resWrapper.isAsync = true;
 	resWrapper.currentEvent = progpCtx->event;
 	progpCgoBinding__15(&resWrapper, p0);
@@ -2166,7 +2166,7 @@ void v8Function_63(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
 
 	ProgpFunctionReturnVoid resWrapper{};
 
-    progp_IncreaseContextRef();
+    progp_IncreaseContextRef(progpCtx);
     resWrapper.isAsync = true;
 	resWrapper.currentEvent = progpCtx->event;
 	progpCgoBinding__63(&resWrapper, p0, &p1, p2, p3);
@@ -2222,7 +2222,7 @@ void v8Function_64(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
 
 	ProgpFunctionReturnVoid resWrapper{};
 
-    progp_IncreaseContextRef();
+    progp_IncreaseContextRef(progpCtx);
     resWrapper.isAsync = true;
 	resWrapper.currentEvent = progpCtx->event;
 	progpCgoBinding__64(&resWrapper, p0, &p1, p2, &p3, p4);

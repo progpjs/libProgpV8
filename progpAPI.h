@@ -109,8 +109,8 @@ int progp_GetSizeOfAnyValueStruct();
 
 typedef void (*f_progp_noParamNoReturn)();
 typedef void (*f_progp_eventFinished)(uintptr_t eventId);
-typedef void (*f_progp_javascriptErrorListener)(s_progp_v8_errorMessage* error);
-typedef s_progp_anyValue (*f_draftFunctionListener)(char* functionName, s_progp_anyValue* anyValueArray, int valueCount, ProgpEvent currentEvent);
+typedef void (*f_progp_javascriptErrorListener)(ProgpContext progpCtx, s_progp_v8_errorMessage* error);
+typedef s_progp_anyValue (*f_draftFunctionListener)(ProgpContext progpCtx, char* functionName, s_progp_anyValue* anyValueArray, int valueCount, ProgpEvent currentEvent);
 
 //endregion
 
@@ -185,7 +185,9 @@ void cgoInitialize();
 
 //endregion
 
-ProgpContext progp_StartupEngine();
+void progp_StartupEngine();
+ProgpContext progp_CreateNewContext(uintptr_t data);
+void progp_DisposeContext(ProgpContext progpCtx);
 
 void progp_IncreaseContextRef(ProgpContext progpCtx);
 void progp_DecreaseContextRef(ProgpContext progpCtx);

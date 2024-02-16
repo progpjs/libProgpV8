@@ -18,7 +18,7 @@
 #include "./progpV8.h"
 #include "./progpTools.h"
 
-s_progp_anyValue draftFunctionListener(char* functionName, s_progp_anyValue* anyValueArray, int valueCount, ProgpEvent currentEvent)  {
+s_progp_anyValue draftFunctionListener(ProgpContext progpCtx, char* functionName, s_progp_anyValue* anyValueArray, int valueCount, ProgpEvent currentEvent)  {
     auto text = std::string("hello function ") + functionName+ "!";
 
     s_progp_anyValue res;
@@ -30,7 +30,7 @@ s_progp_anyValue draftFunctionListener(char* functionName, s_progp_anyValue* any
     return res;
 }
 
-void onJavascriptError(s_progp_v8_errorMessage* error) {
+void onJavascriptError(ProgpContext progpCtx, s_progp_v8_errorMessage* error) {
     progp_PrintErrorMessage(error);
 }
 
@@ -49,7 +49,8 @@ int main() {
     progpConfig_SetJavascriptFunctionProvider(createTestFunctions);
     progpConfig_SetDraftFunctionListener(draftFunctionListener);
 
-    auto progpCtx = progp_StartupEngine();
+    progp_StartupEngine();
+    auto progpCtx = progp_CreateNewContext(0);
 
     //progp_DeclareDynamicFunction("draftFunction");
 

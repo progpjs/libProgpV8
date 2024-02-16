@@ -96,12 +96,6 @@ func (m *V8Engine) WaitDebuggerReady() {
 	C.progp_WaitDebuggerReady()
 }
 
-func (m *V8Engine) AddDraftFunction(functionName string) {
-	cFunctionName := C.CString(functionName)
-	defer C.free(unsafe.Pointer(cFunctionName))
-	C.progp_DeclareDynamicFunction(cFunctionName)
-}
-
 func (m *V8Engine) Shutdown() {
 	if gTaskQueue.IsDisposed() {
 		// Already shutdown, then quit.
@@ -118,24 +112,11 @@ func (m *V8Engine) Shutdown() {
 
 	gTaskQueue.Dispose()
 
-	exitCurrentIsolate()
+	exitCurrentContext()
 }
 
-func (m *V8Engine) IsMultiIsolateSupported() bool {
-	return false
-}
-
-func (m *V8Engine) GetDefaultIsolate() progpAPI.ScriptIsolate {
-	return gV8Isolate
-}
-
-func (m *V8Engine) CreateNewIsolate(_ string, _ any) progpAPI.ScriptIsolate {
-	if gIsFirstCreatedIsolate {
-		gIsFirstCreatedIsolate = false
-		return gV8Isolate
-	}
-
-	return nil
+func (m *V8Engine) CreateNewScriptContext(securityGroup string) progpAPI.ScriptContext {
+	return newV8ScriptContext(securityGroup)
 }
 
 func (m *V8Engine) SetRuntimeErrorHandler(handler progpAPI.RuntimeErrorHandlerF) {
@@ -150,8 +131,8 @@ func (m *V8Engine) SetAllowedFunctionsChecker(handler progpAPI.CheckAllowedFunct
 	gAllowedFunctionsChecker = handler
 }
 
-func asScriptErrorMessage(ptr *C.s_progp_v8_errorMessage) *progpAPI.ScriptErrorMessage {
-	m := progpAPI.NewScriptErrorMessage(gV8Isolate)
+func asScriptErrorMessage(ctx *v8ScriptContext, ptr *C.s_progp_v8_errorMessage) *progpAPI.ScriptErrorMessage {
+	m := progpAPI.NewScriptErrorMessage(ctx)
 
 	m.ScriptPath = gCurrentScriptPath
 
@@ -188,8 +169,8 @@ func asScriptErrorMessage(ptr *C.s_progp_v8_errorMessage) *progpAPI.ScriptErrorM
 	return m
 }
 
-// exitCurrentIsolate unlocks the current isolate allowing him to exit.
-func exitCurrentIsolate() {
+// exitCurrentContext unlocks the current context allowing him to exit.
+func exitCurrentContext() {
 	if !gCurrentScriptCallerIsWaiting {
 		return
 	}
@@ -229,31 +210,31 @@ const cUintPtr0 = C.uintptr_t(0)
 
 //endregion
 
-//region V8Isolate
+//region V8ScriptContext
 
-var gV8Isolate = newV8Isolate()
-var gIsFirstCreatedIsolate = true
-
-type v8Isolate struct {
+type v8ScriptContext struct {
 	executingMutex          sync.Mutex
 	sharedResourceContainer *progpAPI.SharedResourceContainer
+	progpCtx                C.ProgpContext
+	securityGroup           string
 }
 
-func newV8Isolate() *v8Isolate {
-	m := &v8Isolate{}
+func newV8ScriptContext(securityGroup string) *v8ScriptContext {
+	m := &v8ScriptContext{securityGroup: securityGroup}
+	m.progpCtx = C.progp_CreateNewContext(C.uintptr_t(uintptr(unsafe.Pointer(m))))
 	m.sharedResourceContainer = progpAPI.NewSharedResourceContainer(nil, m)
 	return m
 }
 
-func (m *v8Isolate) GetScriptEngine() progpAPI.ScriptEngine {
+func (m *v8ScriptContext) GetScriptEngine() progpAPI.ScriptEngine {
 	return gProgpV8Engine
 }
 
-func (m *v8Isolate) GetSecurityGroup() string {
-	return "main"
+func (m *v8ScriptContext) GetSecurityGroup() string {
+	return m.securityGroup
 }
 
-func (m *v8Isolate) ExecuteScript(scriptContent string, compiledFilePath string, sourceScriptPath string) *progpAPI.ScriptErrorMessage {
+func (m *v8ScriptContext) ExecuteScript(scriptContent string, compiledFilePath string, sourceScriptPath string) *progpAPI.ScriptErrorMessage {
 	// Allow to make wait call to this function done while the current script is executing.
 	m.executingMutex.Lock()
 	defer m.executingMutex.Unlock()
@@ -274,7 +255,7 @@ func (m *v8Isolate) ExecuteScript(scriptContent string, compiledFilePath string,
 		cCompiledFilePath := C.CString(compiledFilePath)
 		defer C.free(unsafe.Pointer(cCompiledFilePath))
 
-		C.progp_ExecuteScript(cScriptContent, cCompiledFilePath, C.uintptr_t(uintptr(unsafe.Pointer(m.sharedResourceContainer))))
+		C.progp_ExecuteScript(m.progpCtx, cScriptContent, cCompiledFilePath, C.uintptr_t(uintptr(unsafe.Pointer(m.sharedResourceContainer))))
 	})
 
 	// Is unlocked by "cppCallOnNoMoreTask".
@@ -290,29 +271,35 @@ func (m *v8Isolate) ExecuteScript(scriptContent string, compiledFilePath string,
 	return err
 }
 
-func (m *v8Isolate) ExecuteScriptFile(iso progpAPI.ScriptIsolate, scriptPath string) *progpAPI.ScriptErrorMessage {
+func (m *v8ScriptContext) ExecuteScriptFile(ctx progpAPI.ScriptContext, scriptPath string) *progpAPI.ScriptErrorMessage {
 	// It's required since script translation is in progpScripts and not progpAPI.
 	ex := progpAPI.GetScriptFileExecutor()
-	return ex(iso, scriptPath)
+	return ex(ctx, scriptPath)
 }
 
-func (m *v8Isolate) TryDispose() bool {
-	// V8 only support one isolate, it's why it can't be disposed.
-	return false
+func (m *v8ScriptContext) TryDispose() bool {
+	C.progp_DisposeContext(m.progpCtx)
+	return true
 }
 
-func (m *v8Isolate) DisarmError(error *progpAPI.ScriptErrorMessage) {
+func (m *v8ScriptContext) DisarmError(error *progpAPI.ScriptErrorMessage) {
 	if gLastErrorMessage == error {
 		gLastErrorMessage = nil
 	}
 }
 
-func (m *v8Isolate) IncreaseRefCount() {
-	C.progp_IncreaseContextRef()
+func (m *v8ScriptContext) IncreaseRefCount() {
+	C.progp_IncreaseContextRef(m.progpCtx)
 }
 
-func (m *v8Isolate) DecreaseRefCount() {
-	C.progp_DecreaseContextRef()
+func (m *v8ScriptContext) DecreaseRefCount() {
+	C.progp_DecreaseContextRef(m.progpCtx)
+}
+
+func (m *v8ScriptContext) AddDraftFunction(functionName string) {
+	cFunctionName := C.CString(functionName)
+	defer C.free(unsafe.Pointer(cFunctionName))
+	C.progp_DeclareDynamicFunction(m.progpCtx, cFunctionName)
 }
 
 //endregion
@@ -719,11 +706,12 @@ func encodeAnyValue(resV reflect.Value) C.s_progp_anyValue {
 // cppCallOnJavascriptError is called when a un-catch error occurs.
 //
 //export cppCallOnJavascriptError
-func cppCallOnJavascriptError(error *C.s_progp_v8_errorMessage) {
-	gLastErrorMessage = asScriptErrorMessage(error)
+func cppCallOnJavascriptError(ctxRef *C.void, error *C.s_progp_v8_errorMessage) {
+	ctx := (*v8ScriptContext)(unsafe.Pointer(ctxRef))
+	gLastErrorMessage = asScriptErrorMessage(ctx, error)
 
 	if gProgpV8Engine.runtimeErrorHandler != nil {
-		if gProgpV8Engine.runtimeErrorHandler(gV8Isolate, gLastErrorMessage) {
+		if gProgpV8Engine.runtimeErrorHandler(ctx, gLastErrorMessage) {
 			return
 		}
 	}
@@ -745,7 +733,7 @@ func cppCallOnDebuggerExited() {
 //
 //export cppCallOnNoMoreTask
 func cppCallOnNoMoreTask() {
-	exitCurrentIsolate()
+	exitCurrentContext()
 }
 
 // cppOnDynamicFunctionProviderRequested is call when the engine must create a new function group.
@@ -753,14 +741,15 @@ func cppCallOnNoMoreTask() {
 // for each call to the special js function "progpGetModule" which return an object with external functions.
 //
 //export cppOnDynamicFunctionProviderRequested
-func cppOnDynamicFunctionProviderRequested(cGroupName *C.char) {
+func cppOnDynamicFunctionProviderRequested(ctxRef *C.void, cGroupName *C.char) {
+	ctx := (*v8ScriptContext)(unsafe.Pointer(ctxRef))
 	groupName := C.GoString(cGroupName)
 
 	if gFunctionRegistry.IsUsingDynamicMode() {
 		for _, fct := range gFunctionRegistry.GetAllFunctions(false) {
 			if fct.Group == groupName {
 				jsName := fct.JsFunctionName
-				gProgpV8Engine.AddDraftFunction(jsName)
+				ctx.AddDraftFunction(jsName)
 			}
 		}
 	}
@@ -772,7 +761,9 @@ func cppOnDynamicFunctionProviderRequested(cGroupName *C.char) {
 // Go function.
 //
 //export cppOnDynamicFunctionCalled
-func cppOnDynamicFunctionCalled(cFunctionName *C.char, cAnyValueArray *C.s_progp_anyValue, cValueCount C.int, currentEvent C.ProgpEvent) C.s_progp_anyValue {
+func cppOnDynamicFunctionCalled(ctxRef *C.void, cFunctionName *C.char, cAnyValueArray *C.s_progp_anyValue, cValueCount C.int, currentEvent C.ProgpEvent) C.s_progp_anyValue {
+	ctx := (*v8ScriptContext)(unsafe.Pointer(ctxRef))
+
 	functionName := C.GoString(cFunctionName)
 	registry := progpAPI.GetFunctionRegistry()
 	fctRef := registry.GetRefToFunction(functionName)
@@ -826,14 +817,14 @@ func cppOnDynamicFunctionCalled(cFunctionName *C.char, cAnyValueArray *C.s_progp
 	}
 
 	if fctRef.IsAsync {
-		C.progp_IncreaseContextRef()
+		C.progp_IncreaseContextRef(ctx.progpCtx)
 	}
 
 	resultValues, errorMsg := progpAPI.DynamicCallFunction(fctRef.GoFunctionRef, values)
 
 	if errorMsg != "" {
 		if fctRef.IsAsync {
-			C.progp_DecreaseContextRef()
+			C.progp_DecreaseContextRef(ctx.progpCtx)
 		}
 
 		return createErrorAnyValue(errorMsg)

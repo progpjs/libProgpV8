@@ -94,7 +94,7 @@ using tcp = boost::asio::ip::tcp;
 typedef void (*f_progp_v8_function)(const v8::FunctionCallbackInfo<v8::Value> &callInfo);
 typedef void (*f_progp_v8_functions_provider)(ProgpContext progpCtx, const std::string &group, const v8::Local<v8::Object> v8Object);
 typedef int (*f_progp_v8_function_allowedFunctionChecker)(char* securityGroup, char* functionGroup, char* functionName);
-typedef void (*f_progp_v8_dynamicFunctions_provider)(char* group);
+typedef void (*f_progp_v8_dynamicFunctions_provider)(ProgpContext progpCtx, char* group);
 
 //endregion
 
@@ -109,6 +109,7 @@ struct s_progp_context {
     v8::Isolate* v8Iso;
     v8::Persistent<v8::Context> v8Ctx;
     s_progp_event* event{};
+    uintptr_t data;
 };
 
 //endregion
@@ -252,7 +253,7 @@ const char* progpV8Value_GetTypeName(v8::Local<v8::Value> &value);
     if (!callInfo[argNum]->IsFunction()) {                                      \
         throw std::runtime_error("invalid param type, expect Function");        \
     }                                                                           \
-    auto target = progpFunctions_NewPointer(callInfo[argNum].As<v8::Function>())
+    auto target = progpFunctions_NewPointer(progpCtx, callInfo[argNum].As<v8::Function>())
 
 //endregion
 

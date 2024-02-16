@@ -66,8 +66,19 @@ void onProcessRejectedPromise(v8::PromiseRejectMessage reject_message) {
 }
 
 extern "C"
-ProgpContext progp_CreateNewContext() {
+void progp_DisposeContext(ProgpContext progpCtx) {
+    delete(progpCtx->event);
+
+    if (progpCtx->v8Iso == v8::Isolate::GetCurrent()) progpCtx->v8Iso->Exit();
+    progpCtx->v8Iso->Dispose();
+
+    delete(progpCtx);
+}
+
+extern "C"
+ProgpContext progp_CreateNewContext(uintptr_t data) {
     auto progpCtx = new s_progp_context();
+    progpCtx->data = data;
 
     // Always having a event allow generalizing some mechanisms.
     // It's why we always bind an event to a ProgpContext.
@@ -107,11 +118,15 @@ ProgpContext progp_CreateNewContext() {
 
     progp_DeclareGlobalFunctions(progpCtx);
 
+    if (gProgpDbgCtx== nullptr) {
+        gProgpDbgCtx = progpCtx;
+    }
+
     return progpCtx;
 }
 
 extern "C"
-ProgpContext progp_StartupEngine() {
+void progp_StartupEngine() {
     gV8Platform = v8::platform::NewDefaultPlatform();
 
     v8::V8::InitializePlatform(gV8Platform.get());
@@ -122,9 +137,6 @@ ProgpContext progp_StartupEngine() {
 #ifndef PROGP_STANDALONE
     cgoInitialize();
 #endif
-
-    gProgpDbgCtx = progp_CreateNewContext();
-    return gProgpDbgCtx;
 }
 
 extern "C"
@@ -288,7 +300,7 @@ void onJavascriptError(ProgpContext progpCtx, const v8::Local<v8::Context> &v8Ct
 
     if (gJavascriptErrorListener != nullptr) {
         auto msg = createErrorMessage(progpCtx, v8Ctx, message);
-        gJavascriptErrorListener(msg);
+        gJavascriptErrorListener(progpCtx, msg);
         disposeErrorMessage(msg);
     }
 }
@@ -343,7 +355,7 @@ void progp_CreateFunctionGroup(ProgpContext progpCtx, const std::string& group, 
         gCurrentFunctionGroup = &v8Object;
 
         // Will call progp_DeclareDynamicFunction.
-        gV8DynamicFunctionProvider((char*)group.c_str());
+        gV8DynamicFunctionProvider(progpCtx, (char*)group.c_str());
 
         gCurrentFunctionGroup = nullptr;
     }
@@ -382,6 +394,7 @@ void progp_DeclareGlobalFunctions(ProgpContext progpCtx) {
 
 s_progp_v8_function* progpFunctions_NewPointer(ProgpContext progpCtx, const v8::Local<v8::Function> &v8Function) {
     auto res = new s_progp_v8_function();
+    res->progpCtx = progpCtx;
     res->ref.Reset(progpCtx->v8Iso, v8Function);
     return res;
 }
@@ -1368,7 +1381,7 @@ void progp_handleDraftFunction(const v8::FunctionCallbackInfo<v8::Value> &callIn
             gAnyValue[i] = value;
         }
 
-        auto res = gDraftFunctionListener(functionName, gAnyValue, argCount, progpCtx->event);
+        auto res = gDraftFunctionListener(progpCtx, functionName, gAnyValue, argCount, progpCtx->event);
 
         if (res.errorMessage!= nullptr) {
             auto v8String = CSTRING_TO_V8VALUE(res.errorMessage);

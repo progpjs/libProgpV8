@@ -20,14 +20,26 @@
 
 #include <iostream>
 
+void handleErrorMessage(ProgpContext progpCtx, s_progp_v8_errorMessage* error) {
+    cppCallOnJavascriptError((void*)progpCtx->data, error);
+}
+
+void handleDynamicFunctionProvider(ProgpContext progpCtx, char *groupName) {
+    cppOnDynamicFunctionProviderRequested((void*)progpCtx->data, groupName);
+}
+
+s_progp_anyValue handleOnDynamicFunctionCalled(ProgpContext progpCtx, char* functionName, s_progp_anyValue* anyValueArray, int valueCount, ProgpEvent currentEvent) {
+    return cppOnDynamicFunctionCalled((void*)progpCtx->data, functionName, anyValueArray, valueCount, currentEvent);
+}
+
 // Executed by Go.
 void cgoInitialize() {
     progpConfig_SetJavascriptFunctionProvider(exposeGoFunctionsToV8);
-    progpConfig_SetJavascriptErrorListener(cppCallOnJavascriptError);
+    progpConfig_SetJavascriptErrorListener(handleErrorMessage);
     progpConfig_OnDebuggerExitedListener(cppCallOnDebuggerExited);
     progpConfig_OnNoMoreTask(cppCallOnNoMoreTask);
-    progpConfig_SetDraftFunctionListener(cppOnDynamicFunctionCalled);
-    progpConfig_SetDynamicFunctionProvider(cppOnDynamicFunctionProviderRequested);
+    progpConfig_SetDraftFunctionListener(handleOnDynamicFunctionCalled);
+    progpConfig_SetDynamicFunctionProvider(handleDynamicFunctionProvider);
     progpConfig_SetAllowedFunctionChecker(cppCheckAllowedFunction);
     progpConfig_OnEventFinished(cppOnEventFinished);
 }
