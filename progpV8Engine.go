@@ -486,8 +486,12 @@ func (m *v8Function) CallWithError(err error) {
 	}
 }
 
-func (m *v8Function) KeepAlive() {
+func (m *v8Function) KeepAlive(iso progpAPI.ScriptIsolate) {
 	m.mustDisposeFunction = cInt0
+
+	// Avoid restoring the current event if not required.
+	// TODO: crash when uncommented...require to use the isoloate default event
+	//m.currentEvent = nil
 }
 
 func (m *v8Function) CallAsEventFunction() {
