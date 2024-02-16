@@ -198,11 +198,16 @@ func exitCurrentIsolate() {
 	gCurrentScriptMutex.Unlock()
 }
 
-func getSharedResourceContainer(cEventId C.uintptr_t) *progpAPI.SharedResourceContainer {
+func getSharedResourceContainerFromUIntPtr(cEventId C.uintptr_t) *progpAPI.SharedResourceContainer {
 	return (*progpAPI.SharedResourceContainer)(unsafe.Pointer(uintptr(cEventId)))
 }
 
-func resolveSharedResource(cEventId C.uintptr_t, resId C.uintptr_t) *progpAPI.SharedResource {
+func resolveSharedResourceFromDouble(cEventId C.uintptr_t, resId C.double) *progpAPI.SharedResource {
+	rc := (*progpAPI.SharedResourceContainer)(unsafe.Pointer(uintptr(cEventId)))
+	return rc.GetResource(int(resId))
+}
+
+func resolveSharedResourceFromUIntPtr(cEventId C.uintptr_t, resId C.uintptr_t) *progpAPI.SharedResource {
 	rc := (*progpAPI.SharedResourceContainer)(unsafe.Pointer(uintptr(cEventId)))
 	return rc.GetResource(int(resId))
 }
@@ -491,7 +496,7 @@ func (m *v8Function) CallAsEventFunction() {
 		return
 	}
 
-	currentContainer := getSharedResourceContainer(m.currentEvent.id)
+	currentContainer := getSharedResourceContainerFromUIntPtr(m.currentEvent.id)
 	container := progpAPI.NewSharedResourceContainer(currentContainer, currentContainer.GetIsolate())
 
 	C.progp_CallAsEventFunction(functionPtr, C.uintptr_t(uintptr(unsafe.Pointer(container))))
@@ -562,7 +567,7 @@ func decodeAnyValue(value *C.s_progp_anyValue, expectedTypeName string, expected
 			return reflect.ValueOf(asRealValue), nil
 		} else if expectedTypeName == "*progpAPI.SharedResource" {
 			resId := C.uintptr_t(value.number)
-			asRealValue := resolveSharedResource(currentEvent.id, resId)
+			asRealValue := resolveSharedResourceFromUIntPtr(currentEvent.id, resId)
 			return reflect.ValueOf(asRealValue), nil
 		} else {
 			println("ProgpV8 - Unmanaged type for anyValue to any conversion: " + expectedTypeName)
@@ -796,7 +801,7 @@ func cppOnDynamicFunctionCalled(cFunctionName *C.char, cAnyValueArray *C.s_progp
 	for i := 0; i < inputParamsCount; i++ {
 		paramType := parserFunctionInfos.ParamTypes[i]
 		if paramType == "*progpAPI.SharedResourceContainer" {
-			values[i] = reflect.ValueOf(getSharedResourceContainer(currentEvent.id))
+			values[i] = reflect.ValueOf(getSharedResourceContainerFromUIntPtr(currentEvent.id))
 			continue
 		}
 
@@ -879,7 +884,7 @@ func cppCheckAllowedFunction(cSecurityGroup *C.char, cFunctionGroup *C.char, cFu
 
 //export cppOnEventFinished
 func cppOnEventFinished(cEventId C.uintptr_t) {
-	rc := getSharedResourceContainer(cEventId)
+	rc := getSharedResourceContainerFromUIntPtr(cEventId)
 	rc.Dispose()
 
 	println("Event finished: ", int(cEventId))
