@@ -157,7 +157,6 @@ void progp_DecreaseContextRef() {
         if (gProgpCtx->event->refCount==0) {
             auto evt = gProgpCtx->event;
             gProgpCtx->event = evt->previousEvent;
-
             if (g_onEventFinished!=nullptr) g_onEventFinished(evt->id);
 
             delete(evt);
@@ -390,12 +389,11 @@ s_progp_v8_function* progpFunctions_NewPointer(const v8::Local<v8::Function> &v8
 
 //region Functions: call from external / callbacks
 
-#define FCT_CALLBACK_PARAMS s_progp_v8_function* functionRef, bool mustDecreaseTaskCount, bool mustDisposeFunction, ProgpEvent eventToRestore
-
 #define FCT_CALLBACK_BEFORE \
     auto progpCtx = gProgpCtx; \
     V8CTX_ACCESS(); \
     if (eventToRestore!=nullptr) progpCtx->event = eventToRestore; \
+    if (resourceContainerId!=0) useNewEvent(progpCtx, resourceContainerId); \
     v8::TryCatch tryCatch(v8Iso);
 
 #define FCT_CALLBACK_AFTER \
@@ -407,7 +405,23 @@ s_progp_v8_function* progpFunctions_NewPointer(const v8::Local<v8::Function> &v8
     } \
     \
     if (mustDisposeFunction) delete(functionRef); \
+    if (resourceContainerId!=0) progp_DecreaseContextRef(); \
     if (mustDecreaseTaskCount) progp_DecreaseContextRef();
+
+inline void useNewEvent(ProgpContext progpCtx, uintptr_t resourceContainerId) {
+    auto newEvent = new s_progp_event();
+    newEvent->id = resourceContainerId;
+    newEvent->refCount = 0;
+    newEvent->previousEvent = nullptr;
+
+    newEvent->previousEvent = progpCtx->event;
+    progpCtx->event = newEvent;
+
+    // Require, without that the ref counter is 0
+    // and will never go from 1 to 0.
+    //
+    progp_IncreaseContextRef();
+}
 
 extern "C"
 void progp_CallFunctionWithStringP2(FCT_CALLBACK_PARAMS, const char* str, size_t strLen) {
@@ -486,34 +500,6 @@ void progp_CallFunctionWithUndefined(FCT_CALLBACK_PARAMS) {
     auto isEmpty = functionRef->ref.Get(v8Iso)->Call(v8Ctx, v8Ctx->Global(), 0, nullptr).IsEmpty();
 
     FCT_CALLBACK_AFTER
-}
-
-extern "C"
-void progp_CallAsEventFunction(s_progp_v8_function* functionRef, uintptr_t eventId) {
-    auto newEvent = new s_progp_event();
-    newEvent->id = eventId;
-    newEvent->refCount = 0;
-    newEvent->previousEvent = nullptr;
-
-    auto progpCtx = gProgpCtx;
-    V8CTX_ACCESS();
-
-    newEvent->previousEvent = progpCtx->event;
-    progpCtx->event = newEvent;
-    v8::TryCatch tryCatch(v8Iso);
-
-    progp_IncreaseContextRef();
-    auto isEmpty = functionRef->ref.Get(v8Iso)->Call(v8Ctx, v8Ctx->Global(), 0, nullptr).IsEmpty();
-
-    if (isEmpty) {
-        if (tryCatch.HasCaught()) {
-            auto catchError = tryCatch.Message();
-            onJavascriptError(v8Ctx, catchError);
-        }
-    }
-
-    // Allow checking is event go through 0.
-    progp_DecreaseContextRef();
 }
 
 //endregion

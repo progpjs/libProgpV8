@@ -158,9 +158,8 @@ typedef struct ProgpFunctionReturnArrayBuffer {
 
 //region Calling function from Golang
 
-#define FCT_CALLBACK_PARAMS s_progp_v8_function* functionRef, bool mustDecreaseTaskCount, bool mustDisposeFunction, ProgpEvent eventToRestore
+#define FCT_CALLBACK_PARAMS s_progp_v8_function* functionRef, bool mustDecreaseTaskCount, bool mustDisposeFunction, ProgpEvent eventToRestore, uintptr_t resourceContainerId
 
-void progp_CallAsEventFunction(s_progp_v8_function* functionRef, uintptr_t eventId);
 void progp_CallFunctionWithUndefined(FCT_CALLBACK_PARAMS);
 void progp_CallFunctionWithErrorP1(FCT_CALLBACK_PARAMS, const char* str, size_t strLen);
 void progp_CallFunctionWithStringP2(FCT_CALLBACK_PARAMS, const char* str, size_t strLen);
