@@ -56,7 +56,7 @@ void JsProgpGetModule(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
         V8CALLARG_EXPECT_CSTRING(modName, 0);
 
         auto v8Object = v8::Object::New(v8Iso);
-        progp_CreateFunctionGroup(modName, v8Object);
+        progp_CreateFunctionGroup(progpCtx, modName, v8Object);
         callInfo.GetReturnValue().Set(v8Object);
 
     PROGP_V8FUNCTION_AFTER
@@ -93,7 +93,7 @@ void JsProgpBufferToString(const v8::FunctionCallbackInfo<v8::Value> &callInfo) 
     PROGP_V8FUNCTION_AFTER
 }
 
-void progp_CreateFunctionGroup_Internal(const std::string& group, v8::Local<v8::Object> v8Host) {
+void progp_CreateFunctionGroup_Internal(ProgpContext progpCtx, const std::string& group, v8::Local<v8::Object> v8Host) {
     PROGP_BIND_FUNCTION("global", "progpPrint", JsProgpPrint);
     PROGP_BIND_FUNCTION("global", "progpGetModule", JsProgpGetModule);
     PROGP_BIND_FUNCTION("global", "progpStringToBuffer", JsProgpStringToBuffer);

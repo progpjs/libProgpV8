@@ -171,7 +171,7 @@ void progp_CallFunctionWithBoolP2(FCT_CALLBACK_PARAMS, bool value);
 
 //region Calling Golang function
 
-void progp_DeclareDynamicFunction(const char* functionName);
+void progp_DeclareDynamicFunction(ProgpContext progpCtx, const char* functionName);
 
 //endregion
 
@@ -185,14 +185,14 @@ void cgoInitialize();
 
 //endregion
 
-void progp_StartupEngine();
+ProgpContext progp_StartupEngine();
 
-void progp_IncreaseContextRef();
-void progp_DecreaseContextRef();
+void progp_IncreaseContextRef(ProgpContext progpCtx);
+void progp_DecreaseContextRef(ProgpContext progpCtx);
 
 const char* progp_GetV8EngineVersion();
 
-bool progp_ExecuteScript(const char* scriptContent, const char* scriptOrigin, uintptr_t eventId);
+bool progp_ExecuteScript(ProgpContext progpCtx, const char* scriptContent, const char* scriptOrigin, uintptr_t eventId);
 
 void progp_WaitDebuggerReady();
 

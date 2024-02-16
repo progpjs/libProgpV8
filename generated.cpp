@@ -2416,7 +2416,7 @@ void v8Function_54(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
 	PROGP_V8FUNCTION_AFTER
 }
 
-void exposeGoFunctionsToV8(const std::string& group, v8::Local<v8::Object> v8Host) {
+void exposeGoFunctionsToV8(ProgpContext progpCtx, const std::string& group, v8::Local<v8::Object> v8Host) {
     PROGP_BIND_FUNCTION("global", "progpAutoDispose", (f_progp_v8_function)v8Function_3);
     PROGP_BIND_FUNCTION("global", "progpCallAfterMs", (f_progp_v8_function)v8Function_1);
     PROGP_BIND_FUNCTION("global", "progpDispose", (f_progp_v8_function)v8Function_2);

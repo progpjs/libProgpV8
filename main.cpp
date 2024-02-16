@@ -38,7 +38,7 @@ void JsTest(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
     progp_handleDraftFunction(callInfo);
 }
 
-void createTestFunctions(const std::string &group, v8::Local<v8::Object> v8Host) {
+void createTestFunctions(ProgpContext progpCtx, const std::string &group, v8::Local<v8::Object> v8Host) {
     if (group=="global") {
         PROGP_BIND_FUNCTION("global", "test", JsTest);
     }
@@ -49,7 +49,7 @@ int main() {
     progpConfig_SetJavascriptFunctionProvider(createTestFunctions);
     progpConfig_SetDraftFunctionListener(draftFunctionListener);
 
-    progp_StartupEngine();
+    auto progpCtx = progp_StartupEngine();
 
     //progp_DeclareDynamicFunction("draftFunction");
 
@@ -57,7 +57,7 @@ int main() {
 
     auto filePath = progpTools_GetCurrentDirectory() + "/stdin.js";
     auto script = progpTools_readFileContent(filePath);
-    progp_ExecuteScript(script.c_str(), filePath.c_str(), 0);
+    progp_ExecuteScript(progpCtx, script.c_str(), filePath.c_str(), 0);
 
     return 0;
 }

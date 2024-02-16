@@ -85,22 +85,23 @@ using tcp = boost::asio::ip::tcp;
     }
 
 #define PROGP_BIND_FUNCTION(GROUP, NAME, FCT_REF) \
-    if (group==GROUP) progp_AddFunctionToObject(GROUP, v8Host, NAME, FCT_REF)
+    if (group==GROUP) progp_AddFunctionToObject(progpCtx, GROUP, v8Host, NAME, FCT_REF)
 
 //endregion
 
 //region Function Types
 
 typedef void (*f_progp_v8_function)(const v8::FunctionCallbackInfo<v8::Value> &callInfo);
-typedef void (*f_progp_v8_functions_provider)(const std::string &group, const v8::Local<v8::Object> v8Object);
-typedef void (*f_progp_v8_dynamicFunctions_provider)(char* group);
+typedef void (*f_progp_v8_functions_provider)(ProgpContext progpCtx, const std::string &group, const v8::Local<v8::Object> v8Object);
 typedef int (*f_progp_v8_function_allowedFunctionChecker)(char* securityGroup, char* functionGroup, char* functionName);
+typedef void (*f_progp_v8_dynamicFunctions_provider)(char* group);
 
 //endregion
 
 //region C Structs
 
 struct s_progp_v8_function {
+    ProgpContext progpCtx;
     v8::Persistent<v8::Function> ref;
 };
 
@@ -499,7 +500,7 @@ void progpConfig_OnEventFinished(f_progp_eventFinished listener);
 
 #ifndef PROGP_STANDALONE
 
-void exposeGoFunctionsToV8(const std::string& group, v8::Local<v8::Object> v8Host);
+void exposeGoFunctionsToV8(ProgpContext progpCtx, const std::string& group, v8::Local<v8::Object> v8Host);
 
 #endif
 
@@ -518,21 +519,18 @@ void exposeGoFunctionsToV8(const std::string& group, v8::Local<v8::Object> v8Hos
 #define PROGP_ANY_VALUE_JSON 8
 
 
-v8::Local<v8::Value> progp_AnyValueToV8Value(const v8::Local<v8::Context> &v8Ctx, const s_progp_anyValue &anyValue);
-s_progp_anyValue progp_AnyValueFromV8Value(const v8::Local<v8::Context> &v8Ctx, const v8::Local<v8::Value> &v8Value);
+v8::Local<v8::Value> progp_AnyValueToV8Value(ProgpContext progpCtx, const v8::Local<v8::Context> &v8Ctx, const s_progp_anyValue &anyValue);
+s_progp_anyValue progp_AnyValueFromV8Value(ProgpContext progpCtx, const v8::Local<v8::Context> &v8Ctx, const v8::Local<v8::Value> &v8Value);
 void progp_handleDraftFunction(const v8::FunctionCallbackInfo<v8::Value> &callInfo);
 
 //endregion
 
-ProgpContext progp_GetCurrentContext();
+void progp_AddFunctionToObject(ProgpContext progpCtx, const char* groupName, const v8::Local<v8::Object> &v8Object, const char* functionName, f_progp_v8_function functionRef);
 
-void progp_AddFunction(const char* functionName, f_progp_v8_function functionRef);
-void progp_AddFunctionToObject(const char* groupName, const v8::Local<v8::Object> &v8Object, const char* functionName, f_progp_v8_function functionRef);
+void progp_CreateFunctionGroup(ProgpContext progpCtx, const std::string& group, const v8::Local<v8::Object> &v8Object);
+void progp_CreateFunctionGroup_Internal(ProgpContext progpCtx, const std::string& group, v8::Local<v8::Object> v8Host);
 
-void progp_CreateFunctionGroup(const std::string& group, const v8::Local<v8::Object> &v8Object);
-void progp_CreateFunctionGroup_Internal(const std::string& group, v8::Local<v8::Object> v8Host);
-
-s_progp_v8_function* progpFunctions_NewPointer(const v8::Local<v8::Function> &v8Function);
+s_progp_v8_function* progpFunctions_NewPointer(ProgpContext progpCtx, const v8::Local<v8::Function> &v8Function);
 
 void progp_PrintErrorMessage(s_progp_v8_errorMessage* msg);
 
