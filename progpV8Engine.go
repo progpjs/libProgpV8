@@ -147,7 +147,7 @@ func (m *V8Engine) SetScriptTerminatedHandler(handler progpAPI.ScriptTerminatedH
 }
 
 func (m *V8Engine) SetAllowedFunctionsChecker(handler progpAPI.CheckAllowedFunctionsF) {
-	gallowedFunctionsChecker = handler
+	gAllowedFunctionsChecker = handler
 }
 
 func asScriptErrorMessage(ptr *C.s_progp_v8_errorMessage) *progpAPI.ScriptErrorMessage {
@@ -202,6 +202,11 @@ func getSharedResourceContainer(cEventId C.uintptr_t) *progpAPI.SharedResourceCo
 	return (*progpAPI.SharedResourceContainer)(unsafe.Pointer(uintptr(cEventId)))
 }
 
+func resolveSharedResource(cEventId C.uintptr_t, resId C.uintptr_t) *progpAPI.SharedResource {
+	rc := (*progpAPI.SharedResourceContainer)(unsafe.Pointer(uintptr(cEventId)))
+	return rc.GetResource(int(resId))
+}
+
 var gCurrentScriptMutex sync.Mutex
 var gCurrentScriptCallerIsWaiting bool
 
@@ -211,7 +216,7 @@ var gTaskQueue *progpAPI.TaskQueue
 var gShutdownMutex sync.Mutex
 var gSizeOfAnyValueStruct int
 var gFunctionRegistry = progpAPI.GetFunctionRegistry()
-var gallowedFunctionsChecker progpAPI.CheckAllowedFunctionsF
+var gAllowedFunctionsChecker progpAPI.CheckAllowedFunctionsF
 
 const cInt0 = C.int(0)
 const cInt1 = C.int(1)
@@ -229,7 +234,9 @@ type v8Isolate struct {
 }
 
 func newV8Isolate() *v8Isolate {
-	return &v8Isolate{sharedResourceContainer: progpAPI.NewSharedResourceContainer(nil)}
+	m := &v8Isolate{}
+	m.sharedResourceContainer = progpAPI.NewSharedResourceContainer(nil, m)
+	return m
 }
 
 func (m *v8Isolate) GetScriptEngine() progpAPI.ScriptEngine {
@@ -292,6 +299,14 @@ func (m *v8Isolate) DisarmError(error *progpAPI.ScriptErrorMessage) {
 	if gLastErrorMessage == error {
 		gLastErrorMessage = nil
 	}
+}
+
+func (m *v8Isolate) IncreaseRefCount() {
+	C.progp_IncreaseContextRef()
+}
+
+func (m *v8Isolate) DecreaseRefCount() {
+	C.progp_DecreaseContextRef()
 }
 
 //endregion
@@ -477,7 +492,7 @@ func (m *v8Function) CallAsEventFunction() {
 	}
 
 	currentContainer := getSharedResourceContainer(m.currentEvent.id)
-	container := progpAPI.NewSharedResourceContainer(currentContainer)
+	container := progpAPI.NewSharedResourceContainer(currentContainer, currentContainer.GetIsolate())
 
 	C.progp_CallAsEventFunction(functionPtr, C.uintptr_t(uintptr(unsafe.Pointer(container))))
 }
@@ -546,8 +561,8 @@ func decodeAnyValue(value *C.s_progp_anyValue, expectedTypeName string, expected
 			asRealValue := int32(value.number)
 			return reflect.ValueOf(asRealValue), nil
 		} else if expectedTypeName == "*progpAPI.SharedResource" {
-			resId := int(value.number)
-			asRealValue := progpAPI.GetSharedResource(resId)
+			resId := C.uintptr_t(value.number)
+			asRealValue := resolveSharedResource(currentEvent.id, resId)
 			return reflect.ValueOf(asRealValue), nil
 		} else {
 			println("ProgpV8 - Unmanaged type for anyValue to any conversion: " + expectedTypeName)
@@ -847,12 +862,12 @@ func cppOnDynamicFunctionCalled(cFunctionName *C.char, cAnyValueArray *C.s_progp
 
 //export cppCheckAllowedFunction
 func cppCheckAllowedFunction(cSecurityGroup *C.char, cFunctionGroup *C.char, cFunctionName *C.char) C.int {
-	if gallowedFunctionsChecker != nil {
+	if gAllowedFunctionsChecker != nil {
 		securityGroup := C.GoString(cSecurityGroup)
 		functionGroup := C.GoString(cFunctionGroup)
 		cFunctionName := C.GoString(cFunctionName)
 
-		if gallowedFunctionsChecker(securityGroup, functionGroup, cFunctionName) {
+		if gAllowedFunctionsChecker(securityGroup, functionGroup, cFunctionName) {
 			return cInt1
 		}
 
