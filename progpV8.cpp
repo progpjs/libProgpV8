@@ -395,7 +395,7 @@ s_progp_v8_function* progpFunctions_NewPointer(const v8::Local<v8::Function> &v8
 #define FCT_CALLBACK_BEFORE \
     auto progpCtx = gProgpCtx; \
     V8CTX_ACCESS(); \
-    progpCtx->event = eventToRestore; \
+    if (eventToRestore!=nullptr) progpCtx->event = eventToRestore; \
     v8::TryCatch tryCatch(v8Iso);
 
 #define FCT_CALLBACK_AFTER \
