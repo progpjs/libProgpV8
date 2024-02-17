@@ -47,9 +47,12 @@ import (
 //region V8Engine
 
 type V8Engine struct {
-	isStarted               bool
+	isStarted  bool
+	isShutdown bool
+
 	runtimeErrorHandler     progpAPI.RuntimeErrorHandlerF
 	scriptTerminatedHandler progpAPI.ScriptTerminatedHandlerF
+	shutdownMutex           sync.Mutex
 }
 
 var gProgpV8Engine *V8Engine
@@ -63,9 +66,7 @@ func RegisterEngine() {
 
 func getProgpV8Engine() *V8Engine {
 	if gProgpV8Engine == nil {
-		gTaskQueue = progpAPI.NewTaskQueue()
 		gProgpV8Engine = &V8Engine{}
-		gSizeOfAnyValueStruct = int(C.progp_GetSizeOfAnyValueStruct())
 	}
 
 	return gProgpV8Engine
@@ -97,22 +98,26 @@ func (m *V8Engine) WaitDebuggerReady() {
 }
 
 func (m *V8Engine) Shutdown() {
-	if gTaskQueue.IsDisposed() {
-		// Already shutdown, then quit.
+	if m.isShutdown {
 		return
 	}
+
+	m.shutdownMutex.Lock()
+	defer m.shutdownMutex.Unlock()
+
+	if m.isShutdown {
+		return
+	}
+	m.isShutdown = true
 
 	gShutdownMutex.Lock()
 	defer gShutdownMutex.Unlock()
 
-	if gTaskQueue.IsDisposed() {
-		// Already shutdown, then quit.
-		return
+	for _, c := range gContexts {
+		if c != nil {
+			c.dispose()
+		}
 	}
-
-	gTaskQueue.Dispose()
-
-	exitCurrentContext()
 }
 
 func (m *V8Engine) CreateNewScriptContext(securityGroup string) progpAPI.ScriptContext {
@@ -134,7 +139,7 @@ func (m *V8Engine) SetAllowedFunctionsChecker(handler progpAPI.CheckAllowedFunct
 func asScriptErrorMessage(ctx *v8ScriptContext, ptr *C.s_progp_v8_errorMessage) *progpAPI.ScriptErrorMessage {
 	m := progpAPI.NewScriptErrorMessage(ctx)
 
-	m.ScriptPath = gCurrentScriptPath
+	m.ScriptPath = ctx.scriptPath
 
 	m.Error = C.GoString(ptr.error)
 	m.ErrorLevel = int(ptr.errorLevel)
@@ -169,16 +174,6 @@ func asScriptErrorMessage(ctx *v8ScriptContext, ptr *C.s_progp_v8_errorMessage) 
 	return m
 }
 
-// exitCurrentContext unlocks the current context allowing him to exit.
-func exitCurrentContext() {
-	if !gCurrentScriptCallerIsWaiting {
-		return
-	}
-
-	gCurrentScriptCallerIsWaiting = false
-	gCurrentScriptMutex.Unlock()
-}
-
 func getSharedResourceContainerFromUIntPtr(cEventId C.uintptr_t) *progpAPI.SharedResourceContainer {
 	return (*progpAPI.SharedResourceContainer)(unsafe.Pointer(uintptr(cEventId)))
 }
@@ -193,14 +188,9 @@ func resolveSharedResourceFromUIntPtr(cEventId C.uintptr_t, resId C.uintptr_t) *
 	return rc.GetResource(int(resId))
 }
 
-var gCurrentScriptMutex sync.Mutex
-var gCurrentScriptCallerIsWaiting bool
-
-var gCurrentScriptPath string
 var gLastErrorMessage *progpAPI.ScriptErrorMessage
-var gTaskQueue *progpAPI.TaskQueue
 var gShutdownMutex sync.Mutex
-var gSizeOfAnyValueStruct int
+var gSizeOfAnyValueStruct = int(C.progp_GetSizeOfAnyValueStruct())
 var gFunctionRegistry = progpAPI.GetFunctionRegistry()
 var gAllowedFunctionsChecker progpAPI.CheckAllowedFunctionsF
 
@@ -217,13 +207,59 @@ type v8ScriptContext struct {
 	sharedResourceContainer *progpAPI.SharedResourceContainer
 	progpCtx                C.ProgpContext
 	securityGroup           string
+	taskQueue               *progpAPI.TaskQueue
+	callerLockMutex         sync.Mutex
+	scriptPath              string
+	isDisposed              bool
+	contextId               int
 }
 
+var gContexts []*v8ScriptContext
+var gContextsMutex sync.Mutex
+
 func newV8ScriptContext(securityGroup string) *v8ScriptContext {
-	m := &v8ScriptContext{securityGroup: securityGroup}
+	m := &v8ScriptContext{securityGroup: securityGroup, taskQueue: progpAPI.NewTaskQueue()}
 	m.progpCtx = C.progp_CreateNewContext(C.uintptr_t(uintptr(unsafe.Pointer(m))))
 	m.sharedResourceContainer = progpAPI.NewSharedResourceContainer(nil, m)
+
+	gContextsMutex.Lock()
+	defer gContextsMutex.Unlock()
+
+	for i, e := range gContexts {
+		if e == nil {
+			gContexts[i] = m
+			m.contextId = i
+			return m
+		}
+	}
+
+	m.contextId = len(gContexts)
+	gContexts = append(gContexts, m)
+
+	m.callerLockMutex.Lock()
+
 	return m
+}
+
+func (m *v8ScriptContext) dispose() {
+	if m.isDisposed {
+		return
+	}
+	gContextsMutex.Lock()
+
+	if m.isDisposed {
+		gContextsMutex.Unlock()
+		return
+	}
+
+	m.isDisposed = true
+	gContexts[m.contextId] = nil
+	gContextsMutex.Unlock()
+
+	m.taskQueue.Dispose()
+	m.sharedResourceContainer.Dispose()
+
+	m.callerLockMutex.Unlock()
 }
 
 func (m *v8ScriptContext) GetScriptEngine() progpAPI.ScriptEngine {
@@ -242,11 +278,9 @@ func (m *v8ScriptContext) ExecuteScript(scriptContent string, compiledFilePath s
 	progpAPI.DeclareBackgroundTaskStarted()
 	defer progpAPI.DeclareBackgroundTaskEnded()
 
-	gCurrentScriptMutex.Lock()
-	gCurrentScriptCallerIsWaiting = true
+	m.scriptPath = compiledFilePath
 
-	gTaskQueue.Push(func() {
-		gCurrentScriptPath = compiledFilePath
+	m.taskQueue.Push(func() {
 		gLastErrorMessage = nil
 
 		cScriptContent := C.CString(scriptContent)
@@ -258,8 +292,10 @@ func (m *v8ScriptContext) ExecuteScript(scriptContent string, compiledFilePath s
 		C.progp_ExecuteScript(m.progpCtx, cScriptContent, cCompiledFilePath, C.uintptr_t(uintptr(unsafe.Pointer(m.sharedResourceContainer))))
 	})
 
+	// It's first locked when creating the context.
 	// Is unlocked by "cppCallOnNoMoreTask".
-	gCurrentScriptMutex.Lock()
+	//
+	m.callerLockMutex.Lock()
 
 	err := gLastErrorMessage
 	gLastErrorMessage = nil
@@ -271,10 +307,10 @@ func (m *v8ScriptContext) ExecuteScript(scriptContent string, compiledFilePath s
 	return err
 }
 
-func (m *v8ScriptContext) ExecuteScriptFile(ctx progpAPI.ScriptContext, scriptPath string) *progpAPI.ScriptErrorMessage {
+func (m *v8ScriptContext) ExecuteScriptFile(scriptPath string) *progpAPI.ScriptErrorMessage {
 	// It's required since script translation is in progpScripts and not progpAPI.
 	ex := progpAPI.GetScriptFileExecutor()
-	return ex(ctx, scriptPath)
+	return ex(m, scriptPath)
 }
 
 func (m *v8ScriptContext) TryDispose() bool {
@@ -312,6 +348,7 @@ type v8Function struct {
 	functionPtr             C.ProgpV8FunctionPtr
 	currentEvent            C.ProgpEvent
 	parentResourceContainer *progpAPI.SharedResourceContainer
+	v8Context               *v8ScriptContext
 }
 
 func newV8Function(isAsync C.int, ptr C.ProgpV8FunctionPtr, currentEvent C.ProgpEvent) progpAPI.ScriptFunction {
@@ -319,6 +356,7 @@ func newV8Function(isAsync C.int, ptr C.ProgpV8FunctionPtr, currentEvent C.Progp
 	res.functionPtr = ptr
 	res.isAsync = isAsync
 	res.currentEvent = currentEvent
+	res.v8Context = (*v8ScriptContext)(unsafe.Pointer(uintptr(currentEvent.contextData)))
 
 	// Will be automatically disposed on first call.
 	res.mustDisposeFunction = cInt1
@@ -365,7 +403,7 @@ func (m *v8Function) CallWithString2(value string) {
 	}
 
 	if m.isAsync == cInt1 {
-		gTaskQueue.Push(func() {
+		m.v8Context.taskQueue.Push(func() {
 			uPtr := unsafe.Pointer(unsafe.StringData(value))
 			C.progp_CallFunctionWithStringP2(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent, resourceContainer, (*C.char)(uPtr), C.size_t(len(value)))
 		})
@@ -382,7 +420,7 @@ func (m *v8Function) CallWithArrayBuffer2(value []byte) {
 	}
 
 	if m.isAsync == cInt1 {
-		gTaskQueue.Push(func() {
+		m.v8Context.taskQueue.Push(func() {
 			C.progp_CallFunctionWithArrayBufferP2(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent, resourceContainer, unsafe.Pointer(&value[0]), C.size_t(len(value)))
 		})
 	} else {
@@ -397,7 +435,7 @@ func (m *v8Function) CallWithStringBuffer2(value []byte) {
 	}
 
 	if m.isAsync == cInt1 {
-		gTaskQueue.Push(func() {
+		m.v8Context.taskQueue.Push(func() {
 			uPtr := unsafe.Pointer(&value[0])
 			C.progp_CallFunctionWithStringP2(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent, resourceContainer, (*C.char)(uPtr), C.size_t(len(value)))
 		})
@@ -418,7 +456,7 @@ func (m *v8Function) CallWithDouble2(value float64) {
 	}
 
 	if m.isAsync == cInt1 {
-		gTaskQueue.Push(func() {
+		m.v8Context.taskQueue.Push(func() {
 			C.progp_CallFunctionWithDoubleP2(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent, resourceContainer, C.double(value))
 		})
 	} else {
@@ -433,7 +471,7 @@ func (m *v8Function) CallWithBool2(value bool) {
 	}
 
 	if m.isAsync == cInt1 {
-		gTaskQueue.Push(func() {
+		m.v8Context.taskQueue.Push(func() {
 			if value {
 				C.progp_CallFunctionWithBoolP2(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent, resourceContainer, cInt1)
 			} else {
@@ -456,7 +494,7 @@ func (m *v8Function) CallWithUndefined() {
 	}
 
 	if m.isAsync == cInt1 {
-		gTaskQueue.Push(func() {
+		m.v8Context.taskQueue.Push(func() {
 			C.progp_CallFunctionWithUndefined(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent, resourceContainer)
 		})
 	} else {
@@ -473,7 +511,7 @@ func (m *v8Function) CallWithError(err error) {
 	value := err.Error()
 
 	if m.isAsync == cInt1 {
-		gTaskQueue.Push(func() {
+		m.v8Context.taskQueue.Push(func() {
 			uPtr := unsafe.Pointer(unsafe.StringData(value))
 			C.progp_CallFunctionWithErrorP1(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent, resourceContainer, (*C.char)(uPtr), C.size_t(len(value)))
 		})
@@ -732,8 +770,9 @@ func cppCallOnDebuggerExited() {
 // Generally once called the app will exit.
 //
 //export cppCallOnNoMoreTask
-func cppCallOnNoMoreTask() {
-	exitCurrentContext()
+func cppCallOnNoMoreTask(ctxRef *C.void) {
+	ctx := (*v8ScriptContext)(unsafe.Pointer(ctxRef))
+	ctx.dispose()
 }
 
 // cppOnDynamicFunctionProviderRequested is call when the engine must create a new function group.

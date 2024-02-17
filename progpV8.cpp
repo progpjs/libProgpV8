@@ -87,6 +87,7 @@ ProgpContext progp_CreateNewContext(uintptr_t data) {
     progpCtx->event->id = 0;
     progpCtx->event->refCount = 0;
     progpCtx->event->previousEvent = nullptr;
+    progpCtx->event->contextData = data;
 
     // Create the v8-isolate.
     {
@@ -150,7 +151,7 @@ const char* progp_GetV8EngineVersion() {
 
 int gContextRefCount;
 
-f_progp_noParamNoReturn g_onNoMoreTask = nullptr;
+f_progp_onNoMoreTasksForContext g_onNoMoreTask = nullptr;
 f_progp_eventFinished g_onEventFinished = nullptr;
 
 extern "C"
@@ -183,7 +184,7 @@ void progp_DecreaseContextRef(ProgpContext progpCtx) {
     gContextRefCount--;
 
     if (gContextRefCount==0) {
-        if (g_onNoMoreTask != nullptr) g_onNoMoreTask();
+        if (g_onNoMoreTask != nullptr) g_onNoMoreTask(progpCtx);
     }
 }
 
@@ -427,6 +428,7 @@ inline void useNewEvent(ProgpContext progpCtx, uintptr_t resourceContainerId) {
     newEvent->id = resourceContainerId;
     newEvent->refCount = 0;
     newEvent->previousEvent = nullptr;
+    newEvent->contextData = progpCtx->data;
 
     newEvent->previousEvent = progpCtx->event;
     progpCtx->event = newEvent;
@@ -1421,7 +1423,7 @@ void progpConfig_OnDebuggerExitedListener(f_progp_noParamNoReturn listener) {
     g_onDebuggerExitedCallback = listener;
 }
 
-void progpConfig_OnNoMoreTask(f_progp_noParamNoReturn listener) {
+void progpConfig_OnNoMoreTask(f_progp_onNoMoreTasksForContext listener) {
     g_onNoMoreTask = listener;
 }
 

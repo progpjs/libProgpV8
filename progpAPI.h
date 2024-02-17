@@ -72,6 +72,7 @@ typedef struct s_progp_event {
     uintptr_t id;
     int refCount;
     s_progp_event* previousEvent;
+    uintptr_t contextData;
 } s_progp_event;
 
 typedef s_progp_event* ProgpEvent;
@@ -108,6 +109,7 @@ int progp_GetSizeOfAnyValueStruct();
 //region Function types
 
 typedef void (*f_progp_noParamNoReturn)();
+typedef void (*f_progp_onNoMoreTasksForContext)(ProgpContext progpCtx);
 typedef void (*f_progp_eventFinished)(uintptr_t eventId);
 typedef void (*f_progp_javascriptErrorListener)(ProgpContext progpCtx, s_progp_v8_errorMessage* error);
 typedef s_progp_anyValue (*f_draftFunctionListener)(ProgpContext progpCtx, char* functionName, s_progp_anyValue* anyValueArray, int valueCount, ProgpEvent currentEvent);

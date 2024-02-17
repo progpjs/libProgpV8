@@ -32,12 +32,16 @@ s_progp_anyValue handleOnDynamicFunctionCalled(ProgpContext progpCtx, char* func
     return cppOnDynamicFunctionCalled((void*)progpCtx->data, functionName, anyValueArray, valueCount, currentEvent);
 }
 
+void handle_oneNoMoreTask(ProgpContext progpCtx) {
+    cppCallOnNoMoreTask((void*)progpCtx->data);
+}
+
 // Executed by Go.
 void cgoInitialize() {
     progpConfig_SetJavascriptFunctionProvider(exposeGoFunctionsToV8);
     progpConfig_SetJavascriptErrorListener(handleErrorMessage);
     progpConfig_OnDebuggerExitedListener(cppCallOnDebuggerExited);
-    progpConfig_OnNoMoreTask(cppCallOnNoMoreTask);
+    progpConfig_OnNoMoreTask(handle_oneNoMoreTask);
     progpConfig_SetDraftFunctionListener(handleOnDynamicFunctionCalled);
     progpConfig_SetDynamicFunctionProvider(handleDynamicFunctionProvider);
     progpConfig_SetAllowedFunctionChecker(cppCheckAllowedFunction);
