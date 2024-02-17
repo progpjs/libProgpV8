@@ -152,8 +152,6 @@ const char* progp_GetV8EngineVersion() {
 
 //region Executing scripts
 
-int gContextRefCount;
-
 f_progp_onNoMoreTasksForContext g_onNoMoreTask = nullptr;
 f_progp_eventFinished g_onEventFinished = nullptr;
 
@@ -163,7 +161,7 @@ void progp_IncreaseContextRef(ProgpContext progpCtx) {
 
     // Here we are thread safe since caller use
     // a funnel doing that only one thread can speak to the VM.
-    gContextRefCount++;
+    progpCtx->refCount++;
 
     if (progpCtx->event!= nullptr) {
         progpCtx->event->refCount++;
@@ -184,9 +182,9 @@ void progp_DecreaseContextRef(ProgpContext progpCtx) {
         }
     }
 
-    gContextRefCount--;
+    progpCtx->refCount--;
 
-    if (gContextRefCount==0) {
+    if (progpCtx->refCount==0) {
         if (g_onNoMoreTask != nullptr) g_onNoMoreTask(progpCtx);
     }
 }

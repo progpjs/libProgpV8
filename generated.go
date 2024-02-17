@@ -47,16 +47,24 @@ func progpCgoBinding__2(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOu
 
 }
 
-//export progpCgoBinding__88
-func progpCgoBinding__88(res *C.ProgpFunctionReturnVoid, p0 C.ProgpV8FunctionPtr, p1 C.ProgpV8BufferPtr) {
+//export progpCgoBinding__4
+func progpCgoBinding__4(res *C.ProgpFunctionReturnVoid, p1 *C.s_progp_goStringOut, p2 *C.s_progp_goStringOut, p3 C.ProgpV8FunctionPtr) {
+	defer progpAPI.CatchFatalErrors()
+
+	modCore.JsProgpRunScriptAsync(getSharedResourceContainerFromUIntPtr(res.currentEvent.id), C.GoStringN(p1.p, p1.n), C.GoStringN(p2.p, p2.n), newV8Function(res.isAsync, p3, res.currentEvent))
+
+}
+
+//export progpCgoBinding__89
+func progpCgoBinding__89(res *C.ProgpFunctionReturnVoid, p0 C.ProgpV8FunctionPtr, p1 C.ProgpV8BufferPtr) {
 	defer progpAPI.CatchFatalErrors()
 
 	modSamples.JsCallbackWithArrayBuffer(newV8Function(res.isAsync, p0, res.currentEvent), C.GoBytes(p1.buffer, p1.length))
 
 }
 
-//export progpCgoBinding__84
-func progpCgoBinding__84(res *C.ProgpFunctionReturnVoid, p0 C.ProgpV8FunctionPtr, p1 C.int) {
+//export progpCgoBinding__85
+func progpCgoBinding__85(res *C.ProgpFunctionReturnVoid, p0 C.ProgpV8FunctionPtr, p1 C.int) {
 	defer progpAPI.CatchFatalErrors()
 
 	var p1_asBool = true
@@ -68,56 +76,56 @@ func progpCgoBinding__84(res *C.ProgpFunctionReturnVoid, p0 C.ProgpV8FunctionPtr
 
 }
 
-//export progpCgoBinding__85
-func progpCgoBinding__85(res *C.ProgpFunctionReturnVoid, p0 C.ProgpV8FunctionPtr, p1 C.double) {
+//export progpCgoBinding__86
+func progpCgoBinding__86(res *C.ProgpFunctionReturnVoid, p0 C.ProgpV8FunctionPtr, p1 C.double) {
 	defer progpAPI.CatchFatalErrors()
 
 	modSamples.JsCallbackWithDouble(newV8Function(res.isAsync, p0, res.currentEvent), float64(p1))
 
 }
 
-//export progpCgoBinding__86
-func progpCgoBinding__86(res *C.ProgpFunctionReturnVoid, p0 C.ProgpV8FunctionPtr, p1 *C.s_progp_goStringOut) {
+//export progpCgoBinding__87
+func progpCgoBinding__87(res *C.ProgpFunctionReturnVoid, p0 C.ProgpV8FunctionPtr, p1 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	modSamples.JsCallbackWithError(newV8Function(res.isAsync, p0, res.currentEvent), C.GoStringN(p1.p, p1.n))
 
 }
 
-//export progpCgoBinding__83
-func progpCgoBinding__83(res *C.ProgpFunctionReturnVoid, p0 C.ProgpV8FunctionPtr, p1 *C.s_progp_goStringOut) {
+//export progpCgoBinding__84
+func progpCgoBinding__84(res *C.ProgpFunctionReturnVoid, p0 C.ProgpV8FunctionPtr, p1 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	modSamples.JsCallbackWithString(newV8Function(res.isAsync, p0, res.currentEvent), C.GoStringN(p1.p, p1.n))
 
 }
 
-//export progpCgoBinding__89
-func progpCgoBinding__89(res *C.ProgpFunctionReturnVoid, p0 C.ProgpV8FunctionPtr, p1 *C.s_progp_goStringOut) {
+//export progpCgoBinding__90
+func progpCgoBinding__90(res *C.ProgpFunctionReturnVoid, p0 C.ProgpV8FunctionPtr, p1 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	modSamples.JsCallbackWithStringBuffer(newV8Function(res.isAsync, p0, res.currentEvent), C.GoStringN(p1.p, p1.n))
 
 }
 
-//export progpCgoBinding__87
-func progpCgoBinding__87(res *C.ProgpFunctionReturnVoid, p0 C.ProgpV8FunctionPtr) {
+//export progpCgoBinding__88
+func progpCgoBinding__88(res *C.ProgpFunctionReturnVoid, p0 C.ProgpV8FunctionPtr) {
 	defer progpAPI.CatchFatalErrors()
 
 	modSamples.JsCallbackWithoutValues(newV8Function(res.isAsync, p0, res.currentEvent))
 
 }
 
-//export progpCgoBinding__90
-func progpCgoBinding__90(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.ProgpV8FunctionPtr) {
+//export progpCgoBinding__91
+func progpCgoBinding__91(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.ProgpV8FunctionPtr) {
 	defer progpAPI.CatchFatalErrors()
 
 	modSamples.JsTestAsync(C.GoStringN(p0.p, p0.n), newV8Function(res.isAsync, p1, res.currentEvent))
 
 }
 
-//export progpCgoBinding__78
-func progpCgoBinding__78(res *C.ProgpFunctionReturnInt, p0 C.int) {
+//export progpCgoBinding__79
+func progpCgoBinding__79(res *C.ProgpFunctionReturnInt, p0 C.int) {
 	defer progpAPI.CatchFatalErrors()
 
 	var p0_asBool = true
@@ -133,8 +141,8 @@ func progpCgoBinding__78(res *C.ProgpFunctionReturnInt, p0 C.int) {
 	}
 }
 
-//export progpCgoBinding__82
-func progpCgoBinding__82(res *C.ProgpFunctionReturnArrayBuffer, p0 C.ProgpV8BufferPtr) {
+//export progpCgoBinding__83
+func progpCgoBinding__83(res *C.ProgpFunctionReturnArrayBuffer, p0 C.ProgpV8BufferPtr) {
 	defer progpAPI.CatchFatalErrors()
 
 	goRes := modSamples.JsTestByteArray(C.GoBytes(p0.buffer, p0.length))
@@ -142,40 +150,40 @@ func progpCgoBinding__82(res *C.ProgpFunctionReturnArrayBuffer, p0 C.ProgpV8Buff
 	res.size = C.int(len(goRes))
 }
 
-//export progpCgoBinding__96
-func progpCgoBinding__96(res *C.ProgpFunctionReturnLong, p1 *C.s_progp_goStringOut) {
+//export progpCgoBinding__97
+func progpCgoBinding__97(res *C.ProgpFunctionReturnLong, p1 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	goRes := modSamples.JsTestCreateResource(getSharedResourceContainerFromUIntPtr(res.currentEvent.id), C.GoStringN(p1.p, p1.n))
 	res.value = C.long(goRes.GetId())
 }
 
-//export progpCgoBinding__74
-func progpCgoBinding__74(res *C.ProgpFunctionReturnDouble, p0 C.double) {
+//export progpCgoBinding__75
+func progpCgoBinding__75(res *C.ProgpFunctionReturnDouble, p0 C.double) {
 	defer progpAPI.CatchFatalErrors()
 
 	goRes := modSamples.JsTestFloat32(float32(p0))
 	res.value = C.double(goRes)
 }
 
-//export progpCgoBinding__73
-func progpCgoBinding__73(res *C.ProgpFunctionReturnDouble, p0 C.double) {
+//export progpCgoBinding__74
+func progpCgoBinding__74(res *C.ProgpFunctionReturnDouble, p0 C.double) {
 	defer progpAPI.CatchFatalErrors()
 
 	goRes := modSamples.JsTestFloat64(float64(p0))
 	res.value = C.double(goRes)
 }
 
-//export progpCgoBinding__77
-func progpCgoBinding__77(res *C.ProgpFunctionReturnLong, p0 C.double) {
+//export progpCgoBinding__78
+func progpCgoBinding__78(res *C.ProgpFunctionReturnLong, p0 C.double) {
 	defer progpAPI.CatchFatalErrors()
 
 	goRes := modSamples.JsTestInt(int(p0))
 	res.value = C.long(goRes)
 }
 
-//export progpCgoBinding__75
-func progpCgoBinding__75(res *C.ProgpFunctionReturnArrayBuffer, p0 *C.s_progp_goStringOut) {
+//export progpCgoBinding__76
+func progpCgoBinding__76(res *C.ProgpFunctionReturnArrayBuffer, p0 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	bp0 := C.GoBytes(unsafe.Pointer(p0.p), p0.n)
@@ -196,8 +204,8 @@ func progpCgoBinding__75(res *C.ProgpFunctionReturnArrayBuffer, p0 *C.s_progp_go
 	}
 }
 
-//export progpCgoBinding__76
-func progpCgoBinding__76(res *C.ProgpFunctionReturnArrayBuffer, p0 *C.s_progp_goStringOut) {
+//export progpCgoBinding__77
+func progpCgoBinding__77(res *C.ProgpFunctionReturnArrayBuffer, p0 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	bp0 := C.GoBytes(unsafe.Pointer(p0.p), p0.n)
@@ -218,40 +226,40 @@ func progpCgoBinding__76(res *C.ProgpFunctionReturnArrayBuffer, p0 *C.s_progp_go
 	}
 }
 
-//export progpCgoBinding__94
-func progpCgoBinding__94(res *C.ProgpFunctionReturnVoid, p0 C.double) {
+//export progpCgoBinding__95
+func progpCgoBinding__95(res *C.ProgpFunctionReturnVoid, p0 C.double) {
 	defer progpAPI.CatchFatalErrors()
 
 	modSamples.JsTestReceiveSharedResource(resolveSharedResourceFromDouble(res.currentEvent.id, p0))
 
 }
 
-//export progpCgoBinding__97
-func progpCgoBinding__97(res *C.ProgpFunctionReturnVoid, p1 C.ProgpV8FunctionPtr) {
+//export progpCgoBinding__98
+func progpCgoBinding__98(res *C.ProgpFunctionReturnVoid, p1 C.ProgpV8FunctionPtr) {
 	defer progpAPI.CatchFatalErrors()
 
 	modSamples.JsTestRegisterEventReactor(getSharedResourceContainerFromUIntPtr(res.currentEvent.id), newV8Function(res.isAsync, p1, res.currentEvent))
 
 }
 
-//export progpCgoBinding__95
-func progpCgoBinding__95(res *C.ProgpFunctionReturnLong) {
+//export progpCgoBinding__96
+func progpCgoBinding__96(res *C.ProgpFunctionReturnLong) {
 	defer progpAPI.CatchFatalErrors()
 
 	goRes := modSamples.JsTestReturnSharedResource(getSharedResourceContainerFromUIntPtr(res.currentEvent.id))
 	res.value = C.long(goRes.GetId())
 }
 
-//export progpCgoBinding__72
-func progpCgoBinding__72(res *C.ProgpFunctionReturnString, p0 *C.s_progp_goStringOut) {
+//export progpCgoBinding__73
+func progpCgoBinding__73(res *C.ProgpFunctionReturnString, p0 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	goRes := modSamples.JsTestString(C.GoStringN(p0.p, p0.n))
 	res.value = unsafe.Pointer(&goRes)
 }
 
-//export progpCgoBinding__81
-func progpCgoBinding__81(res *C.ProgpFunctionReturnArrayBuffer, p0 *C.s_progp_goStringOut) {
+//export progpCgoBinding__82
+func progpCgoBinding__82(res *C.ProgpFunctionReturnArrayBuffer, p0 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	bp0 := C.GoBytes(unsafe.Pointer(p0.p), p0.n)
@@ -272,8 +280,8 @@ func progpCgoBinding__81(res *C.ProgpFunctionReturnArrayBuffer, p0 *C.s_progp_go
 	}
 }
 
-//export progpCgoBinding__80
-func progpCgoBinding__80(res *C.ProgpFunctionReturnArrayBuffer, p0 *C.s_progp_goStringOut) {
+//export progpCgoBinding__81
+func progpCgoBinding__81(res *C.ProgpFunctionReturnArrayBuffer, p0 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	bp0 := C.GoBytes(unsafe.Pointer(p0.p), p0.n)
@@ -294,8 +302,8 @@ func progpCgoBinding__80(res *C.ProgpFunctionReturnArrayBuffer, p0 *C.s_progp_go
 	}
 }
 
-//export progpCgoBinding__79
-func progpCgoBinding__79(res *C.ProgpFunctionReturnArrayBuffer, p0 *C.s_progp_goStringOut) {
+//export progpCgoBinding__80
+func progpCgoBinding__80(res *C.ProgpFunctionReturnArrayBuffer, p0 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	bp0 := C.GoBytes(unsafe.Pointer(p0.p), p0.n)
@@ -316,8 +324,8 @@ func progpCgoBinding__79(res *C.ProgpFunctionReturnArrayBuffer, p0 *C.s_progp_go
 	}
 }
 
-//export progpCgoBinding__91
-func progpCgoBinding__91(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut) {
+//export progpCgoBinding__92
+func progpCgoBinding__92(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	err := modSamples.JsThrowError(C.GoStringN(p0.p, p0.n))
@@ -328,8 +336,8 @@ func progpCgoBinding__91(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringO
 	}
 }
 
-//export progpCgoBinding__92
-func progpCgoBinding__92(res *C.ProgpFunctionReturnString, p0 *C.s_progp_goStringOut) {
+//export progpCgoBinding__93
+func progpCgoBinding__93(res *C.ProgpFunctionReturnString, p0 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	err, goRes := modSamples.JsThrowErrorP1(C.GoStringN(p0.p, p0.n))
@@ -341,8 +349,8 @@ func progpCgoBinding__92(res *C.ProgpFunctionReturnString, p0 *C.s_progp_goStrin
 	res.value = unsafe.Pointer(&goRes)
 }
 
-//export progpCgoBinding__93
-func progpCgoBinding__93(res *C.ProgpFunctionReturnString, p0 *C.s_progp_goStringOut) {
+//export progpCgoBinding__94
+func progpCgoBinding__94(res *C.ProgpFunctionReturnString, p0 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	goRes, err := modSamples.JsThrowErrorP2(C.GoStringN(p0.p, p0.n))
@@ -354,16 +362,16 @@ func progpCgoBinding__93(res *C.ProgpFunctionReturnString, p0 *C.s_progp_goStrin
 	res.value = unsafe.Pointer(&goRes)
 }
 
-//export progpCgoBinding__24
-func progpCgoBinding__24(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.double, p2 C.ProgpV8FunctionPtr) {
+//export progpCgoBinding__25
+func progpCgoBinding__25(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.double, p2 C.ProgpV8FunctionPtr) {
 	defer progpAPI.CatchFatalErrors()
 
 	modNodeJs.JsFsAccessAsync(C.GoStringN(p0.p, p0.n), int(p1), newV8Function(res.isAsync, p2, res.currentEvent))
 
 }
 
-//export progpCgoBinding__23
-func progpCgoBinding__23(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.double) {
+//export progpCgoBinding__24
+func progpCgoBinding__24(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.double) {
 	defer progpAPI.CatchFatalErrors()
 
 	err := modNodeJs.JsFsAccessSync(C.GoStringN(p0.p, p0.n), int(p1))
@@ -374,8 +382,8 @@ func progpCgoBinding__23(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringO
 	}
 }
 
-//export progpCgoBinding__48
-func progpCgoBinding__48(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.ProgpV8BufferPtr, p2 *C.s_progp_goStringOut, p3 C.double) {
+//export progpCgoBinding__49
+func progpCgoBinding__49(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.ProgpV8BufferPtr, p2 *C.s_progp_goStringOut, p3 C.double) {
 	defer progpAPI.CatchFatalErrors()
 
 	bp2 := C.GoBytes(unsafe.Pointer(p2.p), p2.n)
@@ -393,8 +401,8 @@ func progpCgoBinding__48(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringO
 	}
 }
 
-//export progpCgoBinding__47
-func progpCgoBinding__47(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 *C.s_progp_goStringOut, p2 *C.s_progp_goStringOut, p3 C.double) {
+//export progpCgoBinding__48
+func progpCgoBinding__48(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 *C.s_progp_goStringOut, p2 *C.s_progp_goStringOut, p3 C.double) {
 	defer progpAPI.CatchFatalErrors()
 
 	bp2 := C.GoBytes(unsafe.Pointer(p2.p), p2.n)
@@ -412,8 +420,8 @@ func progpCgoBinding__47(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringO
 	}
 }
 
-//export progpCgoBinding__26
-func progpCgoBinding__26(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 *C.s_progp_goStringOut, p2 C.ProgpV8FunctionPtr) {
+//export progpCgoBinding__27
+func progpCgoBinding__27(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 *C.s_progp_goStringOut, p2 C.ProgpV8FunctionPtr) {
 	defer progpAPI.CatchFatalErrors()
 
 	bp1 := C.GoBytes(unsafe.Pointer(p1.p), p1.n)
@@ -427,8 +435,8 @@ func progpCgoBinding__26(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringO
 
 }
 
-//export progpCgoBinding__25
-func progpCgoBinding__25(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 *C.s_progp_goStringOut) {
+//export progpCgoBinding__26
+func progpCgoBinding__26(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	bp1 := C.GoBytes(unsafe.Pointer(p1.p), p1.n)
@@ -446,16 +454,16 @@ func progpCgoBinding__25(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringO
 	}
 }
 
-//export progpCgoBinding__28
-func progpCgoBinding__28(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.double, p2 C.double, p3 C.ProgpV8FunctionPtr) {
+//export progpCgoBinding__29
+func progpCgoBinding__29(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.double, p2 C.double, p3 C.ProgpV8FunctionPtr) {
 	defer progpAPI.CatchFatalErrors()
 
 	modNodeJs.JsFsChownAsync(C.GoStringN(p0.p, p0.n), int(p1), int(p2), newV8Function(res.isAsync, p3, res.currentEvent))
 
 }
 
-//export progpCgoBinding__27
-func progpCgoBinding__27(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.double, p2 C.double) {
+//export progpCgoBinding__28
+func progpCgoBinding__28(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.double, p2 C.double) {
 	defer progpAPI.CatchFatalErrors()
 
 	err := modNodeJs.JsFsChownSync(C.GoStringN(p0.p, p0.n), int(p1), int(p2))
@@ -466,16 +474,16 @@ func progpCgoBinding__27(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringO
 	}
 }
 
-//export progpCgoBinding__32
-func progpCgoBinding__32(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 *C.s_progp_goStringOut, p2 C.ProgpV8FunctionPtr) {
+//export progpCgoBinding__33
+func progpCgoBinding__33(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 *C.s_progp_goStringOut, p2 C.ProgpV8FunctionPtr) {
 	defer progpAPI.CatchFatalErrors()
 
 	modNodeJs.JsFsCopyFileAsync(C.GoStringN(p0.p, p0.n), C.GoStringN(p1.p, p1.n), newV8Function(res.isAsync, p2, res.currentEvent))
 
 }
 
-//export progpCgoBinding__31
-func progpCgoBinding__31(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 *C.s_progp_goStringOut) {
+//export progpCgoBinding__32
+func progpCgoBinding__32(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	err := modNodeJs.JsFsCopyFileSync(C.GoStringN(p0.p, p0.n), C.GoStringN(p1.p, p1.n))
@@ -486,16 +494,16 @@ func progpCgoBinding__31(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringO
 	}
 }
 
-//export progpCgoBinding__20
-func progpCgoBinding__20(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.ProgpV8FunctionPtr) {
+//export progpCgoBinding__21
+func progpCgoBinding__21(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.ProgpV8FunctionPtr) {
 	defer progpAPI.CatchFatalErrors()
 
 	modNodeJs.JsFsExistsAsync(C.GoStringN(p0.p, p0.n), newV8Function(res.isAsync, p1, res.currentEvent))
 
 }
 
-//export progpCgoBinding__19
-func progpCgoBinding__19(res *C.ProgpFunctionReturnInt, p0 *C.s_progp_goStringOut) {
+//export progpCgoBinding__20
+func progpCgoBinding__20(res *C.ProgpFunctionReturnInt, p0 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	goRes := modNodeJs.JsFsExistsSync(C.GoStringN(p0.p, p0.n))
@@ -506,16 +514,16 @@ func progpCgoBinding__19(res *C.ProgpFunctionReturnInt, p0 *C.s_progp_goStringOu
 	}
 }
 
-//export progpCgoBinding__34
-func progpCgoBinding__34(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 *C.s_progp_goStringOut, p2 C.ProgpV8FunctionPtr) {
+//export progpCgoBinding__35
+func progpCgoBinding__35(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 *C.s_progp_goStringOut, p2 C.ProgpV8FunctionPtr) {
 	defer progpAPI.CatchFatalErrors()
 
 	modNodeJs.JsFsLinkAsync(C.GoStringN(p0.p, p0.n), C.GoStringN(p1.p, p1.n), newV8Function(res.isAsync, p2, res.currentEvent))
 
 }
 
-//export progpCgoBinding__33
-func progpCgoBinding__33(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 *C.s_progp_goStringOut) {
+//export progpCgoBinding__34
+func progpCgoBinding__34(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	err := modNodeJs.JsFsLinkSync(C.GoStringN(p0.p, p0.n), C.GoStringN(p1.p, p1.n))
@@ -526,8 +534,8 @@ func progpCgoBinding__33(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringO
 	}
 }
 
-//export progpCgoBinding__40
-func progpCgoBinding__40(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.int, p2 *C.s_progp_goStringOut, p3 C.ProgpV8FunctionPtr) {
+//export progpCgoBinding__41
+func progpCgoBinding__41(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.int, p2 *C.s_progp_goStringOut, p3 C.ProgpV8FunctionPtr) {
 	defer progpAPI.CatchFatalErrors()
 
 	var p1_asBool = true
@@ -546,8 +554,8 @@ func progpCgoBinding__40(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringO
 
 }
 
-//export progpCgoBinding__39
-func progpCgoBinding__39(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.int, p2 *C.s_progp_goStringOut) {
+//export progpCgoBinding__40
+func progpCgoBinding__40(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.int, p2 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	var p1_asBool = true
@@ -570,16 +578,16 @@ func progpCgoBinding__39(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringO
 	}
 }
 
-//export progpCgoBinding__42
-func progpCgoBinding__42(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.ProgpV8FunctionPtr) {
+//export progpCgoBinding__43
+func progpCgoBinding__43(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.ProgpV8FunctionPtr) {
 	defer progpAPI.CatchFatalErrors()
 
 	modNodeJs.JsFsMkdtempAsync(C.GoStringN(p0.p, p0.n), newV8Function(res.isAsync, p1, res.currentEvent))
 
 }
 
-//export progpCgoBinding__41
-func progpCgoBinding__41(res *C.ProgpFunctionReturnString, p0 *C.s_progp_goStringOut) {
+//export progpCgoBinding__42
+func progpCgoBinding__42(res *C.ProgpFunctionReturnString, p0 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	goRes, err := modNodeJs.JsFsMkdtempSync(C.GoStringN(p0.p, p0.n))
@@ -591,8 +599,8 @@ func progpCgoBinding__41(res *C.ProgpFunctionReturnString, p0 *C.s_progp_goStrin
 	res.value = unsafe.Pointer(&goRes)
 }
 
-//export progpCgoBinding__44
-func progpCgoBinding__44(res *C.ProgpFunctionReturnArrayBuffer, p0 *C.s_progp_goStringOut) {
+//export progpCgoBinding__45
+func progpCgoBinding__45(res *C.ProgpFunctionReturnArrayBuffer, p0 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	goRes, err := modNodeJs.JsFsReadFileBytesSync(C.GoStringN(p0.p, p0.n))
@@ -605,8 +613,8 @@ func progpCgoBinding__44(res *C.ProgpFunctionReturnArrayBuffer, p0 *C.s_progp_go
 	res.size = C.int(len(goRes))
 }
 
-//export progpCgoBinding__43
-func progpCgoBinding__43(res *C.ProgpFunctionReturnString, p0 *C.s_progp_goStringOut) {
+//export progpCgoBinding__44
+func progpCgoBinding__44(res *C.ProgpFunctionReturnString, p0 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	goRes, err := modNodeJs.JsFsReadFileUtf8Sync(C.GoStringN(p0.p, p0.n))
@@ -619,8 +627,8 @@ func progpCgoBinding__43(res *C.ProgpFunctionReturnString, p0 *C.s_progp_goStrin
 	res.value = unsafe.Pointer(&resString)
 }
 
-//export progpCgoBinding__49
-func progpCgoBinding__49(res *C.ProgpFunctionReturnString, p0 *C.s_progp_goStringOut) {
+//export progpCgoBinding__50
+func progpCgoBinding__50(res *C.ProgpFunctionReturnString, p0 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	goRes, err := modNodeJs.JsFsReadlinkSync(C.GoStringN(p0.p, p0.n))
@@ -632,8 +640,8 @@ func progpCgoBinding__49(res *C.ProgpFunctionReturnString, p0 *C.s_progp_goStrin
 	res.value = unsafe.Pointer(&goRes)
 }
 
-//export progpCgoBinding__50
-func progpCgoBinding__50(res *C.ProgpFunctionReturnString, p0 *C.s_progp_goStringOut) {
+//export progpCgoBinding__51
+func progpCgoBinding__51(res *C.ProgpFunctionReturnString, p0 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	goRes, err := modNodeJs.JsFsRealpathSync(C.GoStringN(p0.p, p0.n))
@@ -645,8 +653,8 @@ func progpCgoBinding__50(res *C.ProgpFunctionReturnString, p0 *C.s_progp_goStrin
 	res.value = unsafe.Pointer(&goRes)
 }
 
-//export progpCgoBinding__45
-func progpCgoBinding__45(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 *C.s_progp_goStringOut) {
+//export progpCgoBinding__46
+func progpCgoBinding__46(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	err := modNodeJs.JsFsRenameSync(C.GoStringN(p0.p, p0.n), C.GoStringN(p1.p, p1.n))
@@ -657,8 +665,8 @@ func progpCgoBinding__45(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringO
 	}
 }
 
-//export progpCgoBinding__46
-func progpCgoBinding__46(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.int, p2 C.int) {
+//export progpCgoBinding__47
+func progpCgoBinding__47(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.int, p2 C.int) {
 	defer progpAPI.CatchFatalErrors()
 
 	var p1_asBool = true
@@ -679,8 +687,8 @@ func progpCgoBinding__46(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringO
 	}
 }
 
-//export progpCgoBinding__22
-func progpCgoBinding__22(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.int, p2 C.ProgpV8FunctionPtr) {
+//export progpCgoBinding__23
+func progpCgoBinding__23(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.int, p2 C.ProgpV8FunctionPtr) {
 	defer progpAPI.CatchFatalErrors()
 
 	var p1_asBool = true
@@ -692,8 +700,8 @@ func progpCgoBinding__22(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringO
 
 }
 
-//export progpCgoBinding__21
-func progpCgoBinding__21(res *C.ProgpFunctionReturnArrayBuffer, p0 *C.s_progp_goStringOut, p1 C.int) {
+//export progpCgoBinding__22
+func progpCgoBinding__22(res *C.ProgpFunctionReturnArrayBuffer, p0 *C.s_progp_goStringOut, p1 C.int) {
 	defer progpAPI.CatchFatalErrors()
 
 	var p1_asBool = true
@@ -717,16 +725,16 @@ func progpCgoBinding__21(res *C.ProgpFunctionReturnArrayBuffer, p0 *C.s_progp_go
 	}
 }
 
-//export progpCgoBinding__36
-func progpCgoBinding__36(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 *C.s_progp_goStringOut, p2 C.ProgpV8FunctionPtr) {
+//export progpCgoBinding__37
+func progpCgoBinding__37(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 *C.s_progp_goStringOut, p2 C.ProgpV8FunctionPtr) {
 	defer progpAPI.CatchFatalErrors()
 
 	modNodeJs.JsFsSymLinkAsync(C.GoStringN(p0.p, p0.n), C.GoStringN(p1.p, p1.n), newV8Function(res.isAsync, p2, res.currentEvent))
 
 }
 
-//export progpCgoBinding__35
-func progpCgoBinding__35(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 *C.s_progp_goStringOut) {
+//export progpCgoBinding__36
+func progpCgoBinding__36(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	err := modNodeJs.JsFsSymLinkSync(C.GoStringN(p0.p, p0.n), C.GoStringN(p1.p, p1.n))
@@ -737,8 +745,8 @@ func progpCgoBinding__35(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringO
 	}
 }
 
-//export progpCgoBinding__30
-func progpCgoBinding__30(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 *C.s_progp_goStringOut, p2 C.ProgpV8FunctionPtr) {
+//export progpCgoBinding__31
+func progpCgoBinding__31(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 *C.s_progp_goStringOut, p2 C.ProgpV8FunctionPtr) {
 	defer progpAPI.CatchFatalErrors()
 
 	bp1 := C.GoBytes(unsafe.Pointer(p1.p), p1.n)
@@ -752,8 +760,8 @@ func progpCgoBinding__30(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringO
 
 }
 
-//export progpCgoBinding__29
-func progpCgoBinding__29(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 *C.s_progp_goStringOut) {
+//export progpCgoBinding__30
+func progpCgoBinding__30(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	bp1 := C.GoBytes(unsafe.Pointer(p1.p), p1.n)
@@ -771,16 +779,16 @@ func progpCgoBinding__29(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringO
 	}
 }
 
-//export progpCgoBinding__38
-func progpCgoBinding__38(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.ProgpV8FunctionPtr) {
+//export progpCgoBinding__39
+func progpCgoBinding__39(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut, p1 C.ProgpV8FunctionPtr) {
 	defer progpAPI.CatchFatalErrors()
 
 	modNodeJs.JsFsUnlinkAsync(C.GoStringN(p0.p, p0.n), newV8Function(res.isAsync, p1, res.currentEvent))
 
 }
 
-//export progpCgoBinding__37
-func progpCgoBinding__37(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut) {
+//export progpCgoBinding__38
+func progpCgoBinding__38(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	err := modNodeJs.JsFsUnlinkSync(C.GoStringN(p0.p, p0.n))
@@ -791,24 +799,11 @@ func progpCgoBinding__37(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringO
 	}
 }
 
-//export progpCgoBinding__16
-func progpCgoBinding__16(res *C.ProgpFunctionReturnString) {
-	defer progpAPI.CatchFatalErrors()
-
-	goRes, err := modNodeJs.JsOsHomeDir()
-
-	if err != nil {
-		res.errorMessage = C.CString(err.Error())
-		return
-	}
-	res.value = unsafe.Pointer(&goRes)
-}
-
 //export progpCgoBinding__17
 func progpCgoBinding__17(res *C.ProgpFunctionReturnString) {
 	defer progpAPI.CatchFatalErrors()
 
-	goRes, err := modNodeJs.JsOsHostName()
+	goRes, err := modNodeJs.JsOsHomeDir()
 
 	if err != nil {
 		res.errorMessage = C.CString(err.Error())
@@ -821,20 +816,33 @@ func progpCgoBinding__17(res *C.ProgpFunctionReturnString) {
 func progpCgoBinding__18(res *C.ProgpFunctionReturnString) {
 	defer progpAPI.CatchFatalErrors()
 
+	goRes, err := modNodeJs.JsOsHostName()
+
+	if err != nil {
+		res.errorMessage = C.CString(err.Error())
+		return
+	}
+	res.value = unsafe.Pointer(&goRes)
+}
+
+//export progpCgoBinding__19
+func progpCgoBinding__19(res *C.ProgpFunctionReturnString) {
+	defer progpAPI.CatchFatalErrors()
+
 	goRes := modNodeJs.JsOsTempDir()
 	res.value = unsafe.Pointer(&goRes)
 }
 
-//export progpCgoBinding__7
-func progpCgoBinding__7(res *C.ProgpFunctionReturnString) {
+//export progpCgoBinding__8
+func progpCgoBinding__8(res *C.ProgpFunctionReturnString) {
 	defer progpAPI.CatchFatalErrors()
 
 	goRes := modNodeJs.JsProcessArch()
 	res.value = unsafe.Pointer(&goRes)
 }
 
-//export progpCgoBinding__9
-func progpCgoBinding__9(res *C.ProgpFunctionReturnArrayBuffer) {
+//export progpCgoBinding__10
+func progpCgoBinding__10(res *C.ProgpFunctionReturnArrayBuffer) {
 	defer progpAPI.CatchFatalErrors()
 
 	goRes := modNodeJs.JsProcessArgV()
@@ -848,8 +856,8 @@ func progpCgoBinding__9(res *C.ProgpFunctionReturnArrayBuffer) {
 	}
 }
 
-//export progpCgoBinding__13
-func progpCgoBinding__13(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut) {
+//export progpCgoBinding__14
+func progpCgoBinding__14(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	err := modNodeJs.JsProcessChDir(C.GoStringN(p0.p, p0.n))
@@ -860,16 +868,16 @@ func progpCgoBinding__13(res *C.ProgpFunctionReturnVoid, p0 *C.s_progp_goStringO
 	}
 }
 
-//export progpCgoBinding__5
-func progpCgoBinding__5(res *C.ProgpFunctionReturnString) {
+//export progpCgoBinding__6
+func progpCgoBinding__6(res *C.ProgpFunctionReturnString) {
 	defer progpAPI.CatchFatalErrors()
 
 	goRes := modNodeJs.JsProcessCwd()
 	res.value = unsafe.Pointer(&goRes)
 }
 
-//export progpCgoBinding__6
-func progpCgoBinding__6(res *C.ProgpFunctionReturnString) {
+//export progpCgoBinding__7
+func progpCgoBinding__7(res *C.ProgpFunctionReturnString) {
 	defer progpAPI.CatchFatalErrors()
 
 	goRes := modNodeJs.JsProcessEnv()
@@ -877,24 +885,24 @@ func progpCgoBinding__6(res *C.ProgpFunctionReturnString) {
 	res.value = unsafe.Pointer(&resString)
 }
 
-//export progpCgoBinding__10
-func progpCgoBinding__10(res *C.ProgpFunctionReturnVoid, p0 C.double) {
+//export progpCgoBinding__11
+func progpCgoBinding__11(res *C.ProgpFunctionReturnVoid, p0 C.double) {
 	defer progpAPI.CatchFatalErrors()
 
 	modNodeJs.JsProcessExit(int(p0))
 
 }
 
-//export progpCgoBinding__14
-func progpCgoBinding__14(res *C.ProgpFunctionReturnLong) {
+//export progpCgoBinding__15
+func progpCgoBinding__15(res *C.ProgpFunctionReturnLong) {
 	defer progpAPI.CatchFatalErrors()
 
 	goRes := modNodeJs.JsProcessGetUid()
 	res.value = C.long(goRes)
 }
 
-//export progpCgoBinding__4
-func progpCgoBinding__4(res *C.ProgpFunctionReturnVoid, p0 C.double, p1 C.double) {
+//export progpCgoBinding__5
+func progpCgoBinding__5(res *C.ProgpFunctionReturnVoid, p0 C.double, p1 C.double) {
 	defer progpAPI.CatchFatalErrors()
 
 	err := modNodeJs.JsProcessKill(int(p0), int(p1))
@@ -905,40 +913,40 @@ func progpCgoBinding__4(res *C.ProgpFunctionReturnVoid, p0 C.double, p1 C.double
 	}
 }
 
-//export progpCgoBinding__15
-func progpCgoBinding__15(res *C.ProgpFunctionReturnVoid, p0 C.ProgpV8FunctionPtr) {
+//export progpCgoBinding__16
+func progpCgoBinding__16(res *C.ProgpFunctionReturnVoid, p0 C.ProgpV8FunctionPtr) {
 	defer progpAPI.CatchFatalErrors()
 
 	modNodeJs.JsProcessNextTickAsync(newV8Function(res.isAsync, p0, res.currentEvent))
 
 }
 
-//export progpCgoBinding__11
-func progpCgoBinding__11(res *C.ProgpFunctionReturnLong) {
+//export progpCgoBinding__12
+func progpCgoBinding__12(res *C.ProgpFunctionReturnLong) {
 	defer progpAPI.CatchFatalErrors()
 
 	goRes := modNodeJs.JsProcessPID()
 	res.value = C.long(goRes)
 }
 
-//export progpCgoBinding__12
-func progpCgoBinding__12(res *C.ProgpFunctionReturnLong) {
+//export progpCgoBinding__13
+func progpCgoBinding__13(res *C.ProgpFunctionReturnLong) {
 	defer progpAPI.CatchFatalErrors()
 
 	goRes := modNodeJs.JsProcessParentPID()
 	res.value = C.long(goRes)
 }
 
-//export progpCgoBinding__8
-func progpCgoBinding__8(res *C.ProgpFunctionReturnString) {
+//export progpCgoBinding__9
+func progpCgoBinding__9(res *C.ProgpFunctionReturnString) {
 	defer progpAPI.CatchFatalErrors()
 
 	goRes := modNodeJs.JsProcessPlatform()
 	res.value = unsafe.Pointer(&goRes)
 }
 
-//export progpCgoBinding__52
-func progpCgoBinding__52(res *C.ProgpFunctionReturnInt, p0 C.double, p1 *C.s_progp_goStringOut) {
+//export progpCgoBinding__53
+func progpCgoBinding__53(res *C.ProgpFunctionReturnInt, p0 C.double, p1 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	bp1 := C.GoBytes(unsafe.Pointer(p1.p), p1.n)
@@ -956,16 +964,16 @@ func progpCgoBinding__52(res *C.ProgpFunctionReturnInt, p0 C.double, p1 *C.s_pro
 	}
 }
 
-//export progpCgoBinding__53
-func progpCgoBinding__53(res *C.ProgpFunctionReturnLong, p1 C.double, p2 *C.s_progp_goStringOut) {
+//export progpCgoBinding__54
+func progpCgoBinding__54(res *C.ProgpFunctionReturnLong, p1 C.double, p2 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	goRes := modHttp.JsGetHost(getSharedResourceContainerFromUIntPtr(res.currentEvent.id), int(p1), C.GoStringN(p2.p, p2.n))
 	res.value = C.long(goRes.GetId())
 }
 
-//export progpCgoBinding__68
-func progpCgoBinding__68(res *C.ProgpFunctionReturnArrayBuffer, p0 C.double, p1 *C.s_progp_goStringOut) {
+//export progpCgoBinding__69
+func progpCgoBinding__69(res *C.ProgpFunctionReturnArrayBuffer, p0 C.double, p1 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	err, goRes := modHttp.JsRequestCookie(resolveSharedResourceFromDouble(res.currentEvent.id, p0), C.GoStringN(p1.p, p1.n))
@@ -984,8 +992,8 @@ func progpCgoBinding__68(res *C.ProgpFunctionReturnArrayBuffer, p0 C.double, p1 
 	}
 }
 
-//export progpCgoBinding__67
-func progpCgoBinding__67(res *C.ProgpFunctionReturnArrayBuffer, p0 C.double) {
+//export progpCgoBinding__68
+func progpCgoBinding__68(res *C.ProgpFunctionReturnArrayBuffer, p0 C.double) {
 	defer progpAPI.CatchFatalErrors()
 
 	err, goRes := modHttp.JsRequestCookies(resolveSharedResourceFromDouble(res.currentEvent.id, p0))
@@ -1004,8 +1012,8 @@ func progpCgoBinding__67(res *C.ProgpFunctionReturnArrayBuffer, p0 C.double) {
 	}
 }
 
-//export progpCgoBinding__69
-func progpCgoBinding__69(res *C.ProgpFunctionReturnArrayBuffer, p0 C.double) {
+//export progpCgoBinding__70
+func progpCgoBinding__70(res *C.ProgpFunctionReturnArrayBuffer, p0 C.double) {
 	defer progpAPI.CatchFatalErrors()
 
 	err, goRes := modHttp.JsRequestHeaders(resolveSharedResourceFromDouble(res.currentEvent.id, p0))
@@ -1024,24 +1032,11 @@ func progpCgoBinding__69(res *C.ProgpFunctionReturnArrayBuffer, p0 C.double) {
 	}
 }
 
-//export progpCgoBinding__60
-func progpCgoBinding__60(res *C.ProgpFunctionReturnString, p0 C.double) {
+//export progpCgoBinding__61
+func progpCgoBinding__61(res *C.ProgpFunctionReturnString, p0 C.double) {
 	defer progpAPI.CatchFatalErrors()
 
 	err, goRes := modHttp.JsRequestHost(resolveSharedResourceFromDouble(res.currentEvent.id, p0))
-
-	if err != nil {
-		res.errorMessage = C.CString(err.Error())
-		return
-	}
-	res.value = unsafe.Pointer(&goRes)
-}
-
-//export progpCgoBinding__58
-func progpCgoBinding__58(res *C.ProgpFunctionReturnString, p0 C.double) {
-	defer progpAPI.CatchFatalErrors()
-
-	err, goRes := modHttp.JsRequestIP(resolveSharedResourceFromDouble(res.currentEvent.id, p0))
 
 	if err != nil {
 		res.errorMessage = C.CString(err.Error())
@@ -1054,6 +1049,19 @@ func progpCgoBinding__58(res *C.ProgpFunctionReturnString, p0 C.double) {
 func progpCgoBinding__59(res *C.ProgpFunctionReturnString, p0 C.double) {
 	defer progpAPI.CatchFatalErrors()
 
+	err, goRes := modHttp.JsRequestIP(resolveSharedResourceFromDouble(res.currentEvent.id, p0))
+
+	if err != nil {
+		res.errorMessage = C.CString(err.Error())
+		return
+	}
+	res.value = unsafe.Pointer(&goRes)
+}
+
+//export progpCgoBinding__60
+func progpCgoBinding__60(res *C.ProgpFunctionReturnString, p0 C.double) {
+	defer progpAPI.CatchFatalErrors()
+
 	err, goRes := modHttp.JsRequestMethod(resolveSharedResourceFromDouble(res.currentEvent.id, p0))
 
 	if err != nil {
@@ -1063,8 +1071,8 @@ func progpCgoBinding__59(res *C.ProgpFunctionReturnString, p0 C.double) {
 	res.value = unsafe.Pointer(&goRes)
 }
 
-//export progpCgoBinding__57
-func progpCgoBinding__57(res *C.ProgpFunctionReturnString, p0 C.double) {
+//export progpCgoBinding__58
+func progpCgoBinding__58(res *C.ProgpFunctionReturnString, p0 C.double) {
 	defer progpAPI.CatchFatalErrors()
 
 	err, goRes := modHttp.JsRequestPath(resolveSharedResourceFromDouble(res.currentEvent.id, p0))
@@ -1076,8 +1084,8 @@ func progpCgoBinding__57(res *C.ProgpFunctionReturnString, p0 C.double) {
 	res.value = unsafe.Pointer(&goRes)
 }
 
-//export progpCgoBinding__62
-func progpCgoBinding__62(res *C.ProgpFunctionReturnArrayBuffer, p0 C.double) {
+//export progpCgoBinding__63
+func progpCgoBinding__63(res *C.ProgpFunctionReturnArrayBuffer, p0 C.double) {
 	defer progpAPI.CatchFatalErrors()
 
 	err, goRes := modHttp.JsRequestPostArgs(resolveSharedResourceFromDouble(res.currentEvent.id, p0))
@@ -1096,8 +1104,8 @@ func progpCgoBinding__62(res *C.ProgpFunctionReturnArrayBuffer, p0 C.double) {
 	}
 }
 
-//export progpCgoBinding__61
-func progpCgoBinding__61(res *C.ProgpFunctionReturnArrayBuffer, p0 C.double) {
+//export progpCgoBinding__62
+func progpCgoBinding__62(res *C.ProgpFunctionReturnArrayBuffer, p0 C.double) {
 	defer progpAPI.CatchFatalErrors()
 
 	err, goRes := modHttp.JsRequestQueryArgs(resolveSharedResourceFromDouble(res.currentEvent.id, p0))
@@ -1116,16 +1124,16 @@ func progpCgoBinding__61(res *C.ProgpFunctionReturnArrayBuffer, p0 C.double) {
 	}
 }
 
-//export progpCgoBinding__63
-func progpCgoBinding__63(res *C.ProgpFunctionReturnVoid, p0 C.double, p1 *C.s_progp_goStringOut, p2 C.double, p3 C.ProgpV8FunctionPtr) {
+//export progpCgoBinding__64
+func progpCgoBinding__64(res *C.ProgpFunctionReturnVoid, p0 C.double, p1 *C.s_progp_goStringOut, p2 C.double, p3 C.ProgpV8FunctionPtr) {
 	defer progpAPI.CatchFatalErrors()
 
 	modHttp.JsRequestReadFormFileAsync(resolveSharedResourceFromDouble(res.currentEvent.id, p0), C.GoStringN(p1.p, p1.n), int(p2), newV8Function(res.isAsync, p3, res.currentEvent))
 
 }
 
-//export progpCgoBinding__66
-func progpCgoBinding__66(res *C.ProgpFunctionReturnArrayBuffer, p0 C.double) {
+//export progpCgoBinding__67
+func progpCgoBinding__67(res *C.ProgpFunctionReturnArrayBuffer, p0 C.double) {
 	defer progpAPI.CatchFatalErrors()
 
 	err, goRes := modHttp.JsRequestRemainingSegments(resolveSharedResourceFromDouble(res.currentEvent.id, p0))
@@ -1144,16 +1152,16 @@ func progpCgoBinding__66(res *C.ProgpFunctionReturnArrayBuffer, p0 C.double) {
 	}
 }
 
-//export progpCgoBinding__64
-func progpCgoBinding__64(res *C.ProgpFunctionReturnVoid, p0 C.double, p1 *C.s_progp_goStringOut, p2 C.double, p3 *C.s_progp_goStringOut, p4 C.ProgpV8FunctionPtr) {
+//export progpCgoBinding__65
+func progpCgoBinding__65(res *C.ProgpFunctionReturnVoid, p0 C.double, p1 *C.s_progp_goStringOut, p2 C.double, p3 *C.s_progp_goStringOut, p4 C.ProgpV8FunctionPtr) {
 	defer progpAPI.CatchFatalErrors()
 
 	modHttp.JsRequestSaveFormFileAsync(resolveSharedResourceFromDouble(res.currentEvent.id, p0), C.GoStringN(p1.p, p1.n), int(p2), C.GoStringN(p3.p, p3.n), newV8Function(res.isAsync, p4, res.currentEvent))
 
 }
 
-//export progpCgoBinding__71
-func progpCgoBinding__71(res *C.ProgpFunctionReturnVoid, p0 C.double, p1 *C.s_progp_goStringOut, p2 *C.s_progp_goStringOut, p3 *C.s_progp_goStringOut) {
+//export progpCgoBinding__72
+func progpCgoBinding__72(res *C.ProgpFunctionReturnVoid, p0 C.double, p1 *C.s_progp_goStringOut, p2 *C.s_progp_goStringOut, p3 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	bp3 := C.GoBytes(unsafe.Pointer(p3.p), p3.n)
@@ -1171,8 +1179,8 @@ func progpCgoBinding__71(res *C.ProgpFunctionReturnVoid, p0 C.double, p1 *C.s_pr
 	}
 }
 
-//export progpCgoBinding__70
-func progpCgoBinding__70(res *C.ProgpFunctionReturnVoid, p0 C.double, p1 *C.s_progp_goStringOut, p2 *C.s_progp_goStringOut) {
+//export progpCgoBinding__71
+func progpCgoBinding__71(res *C.ProgpFunctionReturnVoid, p0 C.double, p1 *C.s_progp_goStringOut, p2 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	err := modHttp.JsRequestSetHeader(resolveSharedResourceFromDouble(res.currentEvent.id, p0), C.GoStringN(p1.p, p1.n), C.GoStringN(p2.p, p2.n))
@@ -1183,8 +1191,8 @@ func progpCgoBinding__70(res *C.ProgpFunctionReturnVoid, p0 C.double, p1 *C.s_pr
 	}
 }
 
-//export progpCgoBinding__56
-func progpCgoBinding__56(res *C.ProgpFunctionReturnString, p0 C.double) {
+//export progpCgoBinding__57
+func progpCgoBinding__57(res *C.ProgpFunctionReturnString, p0 C.double) {
 	defer progpAPI.CatchFatalErrors()
 
 	err, goRes := modHttp.JsRequestURI(resolveSharedResourceFromDouble(res.currentEvent.id, p0))
@@ -1196,8 +1204,8 @@ func progpCgoBinding__56(res *C.ProgpFunctionReturnString, p0 C.double) {
 	res.value = unsafe.Pointer(&goRes)
 }
 
-//export progpCgoBinding__65
-func progpCgoBinding__65(res *C.ProgpFunctionReturnArrayBuffer, p0 C.double) {
+//export progpCgoBinding__66
+func progpCgoBinding__66(res *C.ProgpFunctionReturnArrayBuffer, p0 C.double) {
 	defer progpAPI.CatchFatalErrors()
 
 	err, goRes := modHttp.JsRequestWildcards(resolveSharedResourceFromDouble(res.currentEvent.id, p0))
@@ -1216,8 +1224,8 @@ func progpCgoBinding__65(res *C.ProgpFunctionReturnArrayBuffer, p0 C.double) {
 	}
 }
 
-//export progpCgoBinding__55
-func progpCgoBinding__55(res *C.ProgpFunctionReturnVoid, p0 C.double, p1 C.double, p2 *C.s_progp_goStringOut, p3 *C.s_progp_goStringOut) {
+//export progpCgoBinding__56
+func progpCgoBinding__56(res *C.ProgpFunctionReturnVoid, p0 C.double, p1 C.double, p2 *C.s_progp_goStringOut, p3 *C.s_progp_goStringOut) {
 	defer progpAPI.CatchFatalErrors()
 
 	err := modHttp.JsReturnString(resolveSharedResourceFromDouble(res.currentEvent.id, p0), int(p1), C.GoStringN(p2.p, p2.n), C.GoStringN(p3.p, p3.n))
@@ -1228,8 +1236,8 @@ func progpCgoBinding__55(res *C.ProgpFunctionReturnVoid, p0 C.double, p1 C.doubl
 	}
 }
 
-//export progpCgoBinding__51
-func progpCgoBinding__51(res *C.ProgpFunctionReturnVoid, p1 C.double) {
+//export progpCgoBinding__52
+func progpCgoBinding__52(res *C.ProgpFunctionReturnVoid, p1 C.double) {
 	defer progpAPI.CatchFatalErrors()
 
 	err := modHttp.JsStartServer(getSharedResourceContainerFromUIntPtr(res.currentEvent.id), int(p1))
@@ -1240,8 +1248,8 @@ func progpCgoBinding__51(res *C.ProgpFunctionReturnVoid, p1 C.double) {
 	}
 }
 
-//export progpCgoBinding__54
-func progpCgoBinding__54(res *C.ProgpFunctionReturnVoid, p1 C.double, p2 *C.s_progp_goStringOut, p3 *C.s_progp_goStringOut, p4 C.ProgpV8FunctionPtr) {
+//export progpCgoBinding__55
+func progpCgoBinding__55(res *C.ProgpFunctionReturnVoid, p1 C.double, p2 *C.s_progp_goStringOut, p3 *C.s_progp_goStringOut, p4 C.ProgpV8FunctionPtr) {
 	defer progpAPI.CatchFatalErrors()
 
 	err := modHttp.JsVerbWithFunction(getSharedResourceContainerFromUIntPtr(res.currentEvent.id), resolveSharedResourceFromDouble(res.currentEvent.id, p1), C.GoStringN(p2.p, p2.n), C.GoStringN(p3.p, p3.n), newV8Function(res.isAsync, p4, res.currentEvent))

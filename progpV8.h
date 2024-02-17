@@ -110,6 +110,7 @@ struct s_progp_context {
     v8::Persistent<v8::Context> v8Ctx;
     s_progp_event* event{};
     uintptr_t data;
+    int refCount{};
 };
 
 //endregion
