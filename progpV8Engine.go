@@ -203,7 +203,6 @@ const cUintPtr0 = C.uintptr_t(0)
 //region V8ScriptContext
 
 type v8ScriptContext struct {
-	executingMutex          sync.Mutex
 	sharedResourceContainer *progpAPI.SharedResourceContainer
 	progpCtx                C.ProgpContext
 	securityGroup           string
@@ -235,8 +234,6 @@ func newV8ScriptContext(securityGroup string) *v8ScriptContext {
 		gContexts = append(gContexts, m)
 	}
 	gContextsMutex.Unlock()
-
-	m.callerLockMutex.Lock()
 
 	m.progpCtx = C.progp_CreateNewContext(C.uintptr_t(uintptr(unsafe.Pointer(m))))
 
@@ -278,14 +275,12 @@ func (m *v8ScriptContext) GetSecurityGroup() string {
 }
 
 func (m *v8ScriptContext) ExecuteScript(scriptContent string, compiledFilePath string, sourceScriptPath string) *progpAPI.JsErrorMessage {
-	// Allow to make wait call to this function done while the current script is executing.
-	m.executingMutex.Lock()
-	defer m.executingMutex.Unlock()
-
 	progpAPI.DeclareBackgroundTaskStarted()
 	defer progpAPI.DeclareBackgroundTaskEnded()
 
 	m.scriptPath = compiledFilePath
+
+	m.callerLockMutex.Lock()
 
 	m.taskQueue.Push(func() {
 		gLastErrorMessage = nil
@@ -299,8 +294,8 @@ func (m *v8ScriptContext) ExecuteScript(scriptContent string, compiledFilePath s
 		C.progp_ExecuteScript(m.progpCtx, cScriptContent, cCompiledFilePath, C.uintptr_t(uintptr(unsafe.Pointer(m.sharedResourceContainer))))
 	})
 
-	// It's first locked when creating the context.
-	// Is unlocked by "cppCallOnNoMoreTask".
+	// Is unlocked when disposing the context.
+	// Allow waiting execution ends.
 	//
 	m.callerLockMutex.Lock()
 
