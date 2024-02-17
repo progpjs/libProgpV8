@@ -1,4 +1,4 @@
-package libProgpV8
+package progpV8Engine
 
 // #include <stdlib.h> // For C.free
 // #include "progpAPI.h"

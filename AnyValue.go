@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package libProgpV8
+package progpV8Engine
 
 import "C"
 

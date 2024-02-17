@@ -1,4 +1,4 @@
-package libProgpV8
+package progpV8Engine
 
 // #include <stdlib.h> // For C.free
 // #include "progpAPI.h"
@@ -7,7 +7,7 @@ import "C"
 
 import (
 	"encoding/json"
-	"github.com/progpjs/libHttpServer"
+	"github.com/progpjs/httpServer"
 	"github.com/progpjs/modules/modCore"
 	"github.com/progpjs/modules/modHttp"
 	"github.com/progpjs/modules/modNodeJs"
@@ -942,7 +942,7 @@ func progpCgoBinding__52(res *C.ProgpFunctionReturnInt, p0 C.double, p1 *C.s_pro
 	defer progpAPI.CatchFatalErrors()
 
 	bp1 := C.GoBytes(unsafe.Pointer(p1.p), p1.n)
-	var vp1 libHttpServer.HttpServerStartParams
+	var vp1 httpServer.StartParams
 	if err := json.Unmarshal(bp1, &vp1); err != nil {
 		res.errorMessage = C.CString(err.Error())
 		return
@@ -1157,7 +1157,7 @@ func progpCgoBinding__71(res *C.ProgpFunctionReturnVoid, p0 C.double, p1 *C.s_pr
 	defer progpAPI.CatchFatalErrors()
 
 	bp3 := C.GoBytes(unsafe.Pointer(p3.p), p3.n)
-	var vp3 libHttpServer.HttpCookieOptions
+	var vp3 httpServer.HttpCookieOptions
 	if err := json.Unmarshal(bp3, &vp3); err != nil {
 		res.errorMessage = C.CString(err.Error())
 		return

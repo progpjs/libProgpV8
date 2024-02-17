@@ -189,6 +189,7 @@ void cgoInitialize();
 
 void progp_StartupEngine();
 ProgpContext progp_CreateNewContext(uintptr_t data);
+void progp_InitializeContext(ProgpContext progpCtx);
 void progp_DisposeContext(ProgpContext progpCtx);
 
 void progp_IncreaseContextRef(ProgpContext progpCtx);

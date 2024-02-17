@@ -117,13 +117,16 @@ ProgpContext progp_CreateNewContext(uintptr_t data) {
         v8Ctx->SetEmbedderData(0, v8::External::New(v8Iso, progpCtx));
     }
 
+    return progpCtx;
+}
+
+extern "C"
+void progp_InitializeContext(ProgpContext progpCtx) {
     progp_DeclareGlobalFunctions(progpCtx);
 
     if (gProgpDbgCtx== nullptr) {
         gProgpDbgCtx = progpCtx;
     }
-
-    return progpCtx;
 }
 
 extern "C"

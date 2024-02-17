@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package libProgpV8
+package progpV8Engine
 
 import "C"
 
@@ -38,10 +38,10 @@ import (
 	"sync"
 	"unsafe"
 
-	_ "github.com/progpjs/libProgpV8/libs/darwin_arm64"
-	_ "github.com/progpjs/libProgpV8/libs/linux_arm64"
-	_ "github.com/progpjs/libProgpV8/libs/linux_x86_64"
 	"github.com/progpjs/progpAPI"
+	_ "github.com/progpjs/progpV8Engine/libs/darwin_arm64"
+	_ "github.com/progpjs/progpV8Engine/libs/linux_arm64"
+	_ "github.com/progpjs/progpV8Engine/libs/linux_x86_64"
 )
 
 //region V8Engine
@@ -120,7 +120,7 @@ func (m *V8Engine) Shutdown() {
 	}
 }
 
-func (m *V8Engine) CreateNewScriptContext(securityGroup string) progpAPI.ScriptContext {
+func (m *V8Engine) CreateNewScriptContext(securityGroup string, mustDebug bool) progpAPI.JsContext {
 	return newV8ScriptContext(securityGroup)
 }
 
@@ -136,7 +136,7 @@ func (m *V8Engine) SetAllowedFunctionsChecker(handler progpAPI.CheckAllowedFunct
 	gAllowedFunctionsChecker = handler
 }
 
-func asScriptErrorMessage(ctx *v8ScriptContext, ptr *C.s_progp_v8_errorMessage) *progpAPI.ScriptErrorMessage {
+func asScriptErrorMessage(ctx *v8ScriptContext, ptr *C.s_progp_v8_errorMessage) *progpAPI.JsErrorMessage {
 	m := progpAPI.NewScriptErrorMessage(ctx)
 
 	m.ScriptPath = ctx.scriptPath
@@ -188,7 +188,7 @@ func resolveSharedResourceFromUIntPtr(cEventId C.uintptr_t, resId C.uintptr_t) *
 	return rc.GetResource(int(resId))
 }
 
-var gLastErrorMessage *progpAPI.ScriptErrorMessage
+var gLastErrorMessage *progpAPI.JsErrorMessage
 var gShutdownMutex sync.Mutex
 var gSizeOfAnyValueStruct = int(C.progp_GetSizeOfAnyValueStruct())
 var gFunctionRegistry = progpAPI.GetFunctionRegistry()
@@ -219,24 +219,31 @@ var gContextsMutex sync.Mutex
 
 func newV8ScriptContext(securityGroup string) *v8ScriptContext {
 	m := &v8ScriptContext{securityGroup: securityGroup, taskQueue: progpAPI.NewTaskQueue()}
-	m.progpCtx = C.progp_CreateNewContext(C.uintptr_t(uintptr(unsafe.Pointer(m))))
 	m.sharedResourceContainer = progpAPI.NewSharedResourceContainer(nil, m)
 
 	gContextsMutex.Lock()
-	defer gContextsMutex.Unlock()
-
-	for i, e := range gContexts {
-		if e == nil {
-			gContexts[i] = m
-			m.contextId = i
-			return m
+	{
+		for i, e := range gContexts {
+			if e == nil {
+				gContexts[i] = m
+				m.contextId = i
+				return m
+			}
 		}
-	}
 
-	m.contextId = len(gContexts)
-	gContexts = append(gContexts, m)
+		m.contextId = len(gContexts)
+		gContexts = append(gContexts, m)
+	}
+	gContextsMutex.Unlock()
 
 	m.callerLockMutex.Lock()
+
+	m.progpCtx = C.progp_CreateNewContext(C.uintptr_t(uintptr(unsafe.Pointer(m))))
+
+	// Note: the context must be registered in v8ScriptContext et gContexts
+	// before calling since the C++ part will do call about this context.
+	//
+	C.progp_InitializeContext(m.progpCtx)
 
 	return m
 }
@@ -270,7 +277,7 @@ func (m *v8ScriptContext) GetSecurityGroup() string {
 	return m.securityGroup
 }
 
-func (m *v8ScriptContext) ExecuteScript(scriptContent string, compiledFilePath string, sourceScriptPath string) *progpAPI.ScriptErrorMessage {
+func (m *v8ScriptContext) ExecuteScript(scriptContent string, compiledFilePath string, sourceScriptPath string) *progpAPI.JsErrorMessage {
 	// Allow to make wait call to this function done while the current script is executing.
 	m.executingMutex.Lock()
 	defer m.executingMutex.Unlock()
@@ -307,7 +314,7 @@ func (m *v8ScriptContext) ExecuteScript(scriptContent string, compiledFilePath s
 	return err
 }
 
-func (m *v8ScriptContext) ExecuteScriptFile(scriptPath string) *progpAPI.ScriptErrorMessage {
+func (m *v8ScriptContext) ExecuteScriptFile(scriptPath string) *progpAPI.JsErrorMessage {
 	// It's required since script translation is in progpScripts and not progpAPI.
 	ex := progpAPI.GetScriptFileExecutor()
 	return ex(m, scriptPath)
@@ -318,7 +325,7 @@ func (m *v8ScriptContext) TryDispose() bool {
 	return true
 }
 
-func (m *v8ScriptContext) DisarmError(error *progpAPI.ScriptErrorMessage) {
+func (m *v8ScriptContext) DisarmError(error *progpAPI.JsErrorMessage) {
 	if gLastErrorMessage == error {
 		gLastErrorMessage = nil
 	}
@@ -351,7 +358,7 @@ type v8Function struct {
 	v8Context               *v8ScriptContext
 }
 
-func newV8Function(isAsync C.int, ptr C.ProgpV8FunctionPtr, currentEvent C.ProgpEvent) progpAPI.ScriptFunction {
+func newV8Function(isAsync C.int, ptr C.ProgpV8FunctionPtr, currentEvent C.ProgpEvent) progpAPI.JsFunction {
 	res := new(v8Function)
 	res.functionPtr = ptr
 	res.isAsync = isAsync
@@ -646,7 +653,7 @@ func decodeAnyValue(value *C.s_progp_anyValue, expectedTypeName string, expected
 			return gNilValue, errors.New("Type " + expectedTypeName + " expected")
 		}
 
-		var asRealValue progpAPI.ScriptFunction
+		var asRealValue progpAPI.JsFunction
 
 		if isAsync {
 			asRealValue = newV8Function(cInt1, C.ProgpV8FunctionPtr(value.voidPtr), currentEvent)
