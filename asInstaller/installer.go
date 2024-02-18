@@ -16,7 +16,7 @@
 
 package main
 
-import "github.com/progpjs/progpV8Engine"
+import "github.com/progpjs/progpV8Engine/v2"
 
 func init() {
 	progpV8Engine.RegisterEngine()

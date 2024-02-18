@@ -16,8 +16,6 @@
 
 package progpV8Engine
 
-import "C"
-
 // #cgo CXXFLAGS: -fno-rtti -fPIC -std=c++17 -DV8_COMPRESS_POINTERS -DV8_31BIT_SMIS_ON_64BIT_ARCH -I${SRCDIR}/include -I${SRCDIR}/include/v8 -I${SRCDIR}/include/boost -Wall -DV8_ENABLE_SANDBOX
 // #cgo LDFLAGS: -pthread -lv8
 // #cgo darwin,arm64 LDFLAGS: -L${SRCDIR}/libs/darwin_arm64
@@ -38,10 +36,10 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/progpjs/progpAPI"
-	_ "github.com/progpjs/progpV8Engine/libs/darwin_arm64"
-	_ "github.com/progpjs/progpV8Engine/libs/linux_arm64"
-	_ "github.com/progpjs/progpV8Engine/libs/linux_x86_64"
+	"github.com/progpjs/progpAPI/v2"
+	_ "github.com/progpjs/progpV8Engine/v2/libs/darwin_arm64"
+	_ "github.com/progpjs/progpV8Engine/v2/libs/linux_arm64"
+	_ "github.com/progpjs/progpV8Engine/v2/libs/linux_x86_64"
 )
 
 //region V8Engine
@@ -680,7 +678,7 @@ func decodeAnyValue(value *C.s_progp_anyValue, expectedTypeName string, expected
 
 		return genValue, err
 	case AnyValueTypeFunction:
-		if expectedTypeName != "progpAPI.ScriptFunction" {
+		if expectedTypeName != "progpAPI.JsFunction" {
 			return gNilValue, errors.New("Type " + expectedTypeName + " expected")
 		}
 
@@ -843,13 +841,13 @@ func cppOnDynamicFunctionCalled(ctxRef *C.void, cFunctionName *C.char, cAnyValue
 
 	functionName := C.GoString(cFunctionName)
 	registry := progpAPI.GetFunctionRegistry()
-	fctRef := registry.GetRefToFunction(functionName)
 
+	fctRef := registry.GetRefToFunction(functionName)
 	if fctRef == nil {
 		return createErrorAnyValue(fmt.Sprintf("Unknown function %s", functionName))
 	}
-	parserFunctionInfos := fctRef.GoFunctionInfos
 
+	parserFunctionInfos := fctRef.GoFunctionInfos
 	inputParamsCount := len(parserFunctionInfos.ParamTypes)
 	expectedInputSize := inputParamsCount
 	providedParamCount := int(cValueCount)
