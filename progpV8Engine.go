@@ -222,16 +222,21 @@ func newV8ScriptContext(securityGroup string) *v8ScriptContext {
 
 	gContextsMutex.Lock()
 	{
+		isFound := false
+
 		for i, e := range gContexts {
 			if e == nil {
 				gContexts[i] = m
 				m.contextId = i
-				return m
+				isFound = true
+				break
 			}
 		}
 
-		m.contextId = len(gContexts)
-		gContexts = append(gContexts, m)
+		if !isFound {
+			m.contextId = len(gContexts)
+			gContexts = append(gContexts, m)
+		}
 	}
 	gContextsMutex.Unlock()
 
