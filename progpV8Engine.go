@@ -961,4 +961,10 @@ func cppOnEventFinished(cEventId C.uintptr_t) {
 	rc.Dispose()
 }
 
+//export cppOnPrintLine
+func cppOnPrintLine(cText *C.char) {
+	text := C.GoString(cText)
+	println(text)
+}
+
 //endregion

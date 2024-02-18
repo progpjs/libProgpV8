@@ -111,6 +111,7 @@ int progp_GetSizeOfAnyValueStruct();
 typedef void (*f_progp_noParamNoReturn)();
 typedef void (*f_progp_onNoMoreTasksForContext)(ProgpContext progpCtx);
 typedef void (*f_progp_eventFinished)(uintptr_t eventId);
+typedef void (*f_progp_printHandler)(char* line);
 typedef void (*f_progp_javascriptErrorListener)(ProgpContext progpCtx, s_progp_v8_errorMessage* error);
 typedef s_progp_anyValue (*f_draftFunctionListener)(ProgpContext progpCtx, char* functionName, s_progp_anyValue* anyValueArray, int valueCount, ProgpEvent currentEvent);
 

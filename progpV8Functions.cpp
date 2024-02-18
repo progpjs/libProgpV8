@@ -22,7 +22,7 @@
 
 void JsProgpPrint(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
     PROGP_V8FUNCTION_BEFORE_PROGPCTX
-
+    
         int argsCount = callInfo.Length();
 
         for (int i = 0; i < argsCount; i++) {
@@ -40,7 +40,9 @@ void JsProgpPrint(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
             }
 
             // Will throw an exception if a special type.
-            try { std::cout << V8VALUE_TO_CSTRING(v); }
+            try {
+                progp_PrintString(V8VALUE_TO_CSTRING(v));
+            }
             catch (std::exception &e) {}
         }
 

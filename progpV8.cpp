@@ -1403,6 +1403,20 @@ void progp_handleDraftFunction(const v8::FunctionCallbackInfo<v8::Value> &callIn
 
 //endregion
 
+//region Others
+
+void printConsole(char* text) {
+    PROGP_PRINT(text);
+}
+
+f_progp_printHandler gPrintHandler = printConsole;
+
+void progp_PrintString(const char* text) {
+    gPrintHandler((char*)text);
+}
+
+//endregion
+
 //region Config
 
 void progpConfig_SetJavascriptErrorListener(f_progp_javascriptErrorListener listener) {
@@ -1435,6 +1449,14 @@ void progpConfig_OnEventFinished(f_progp_eventFinished listener) {
 
 void progpConfig_SetDraftFunctionListener(f_draftFunctionListener listener) {
     gDraftFunctionListener = listener;
+}
+
+f_progp_printHandler progpConfig_GetPrintHandler() {
+    return gPrintHandler;
+}
+
+void progpConfig_SetPrintHandler(f_progp_printHandler handler) {
+    gPrintHandler = handler;
 }
 
 //endregion

@@ -485,16 +485,24 @@ private:
 
 //endregion
 
+//region Others
+
+void progp_PrintString(const char* text);
+
+//endregion
+
 //region Config
 
 void progpConfig_SetJavascriptErrorListener(f_progp_javascriptErrorListener listener);
 void progpConfig_SetJavascriptFunctionProvider(f_progp_v8_functions_provider handler);
 void progpConfig_OnDebuggerExitedListener(f_progp_noParamNoReturn listener);
 void progpConfig_OnNoMoreTask(f_progp_onNoMoreTasksForContext listener);
-void progpConfig_SetDraftFunctionListener(f_draftFunctionListener listener);
 void progpConfig_SetDynamicFunctionProvider(f_progp_v8_dynamicFunctions_provider handler);
 void progpConfig_SetAllowedFunctionChecker(f_progp_v8_function_allowedFunctionChecker handler);
 void progpConfig_OnEventFinished(f_progp_eventFinished listener);
+void progpConfig_SetPrintHandler(f_progp_printHandler handler);
+void progpConfig_SetDraftFunctionListener(f_draftFunctionListener listener);
+f_progp_printHandler progpConfig_GetPrintHandler();
 
 //endregion
 

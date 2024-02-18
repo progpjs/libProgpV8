@@ -46,6 +46,7 @@ void cgoInitialize() {
     progpConfig_SetDynamicFunctionProvider(handleDynamicFunctionProvider);
     progpConfig_SetAllowedFunctionChecker(cppCheckAllowedFunction);
     progpConfig_OnEventFinished(cppOnEventFinished);
+    progpConfig_SetPrintHandler(cppOnPrintLine);
 }
 
 #endif // !PROGP_STANDALONE
