@@ -327,6 +327,30 @@ func (m *v8ScriptContext) ExecuteScriptFile(scriptPath string) *progpAPI.JsError
 	return ex(m, scriptPath)
 }
 
+func (m *v8ScriptContext) ExecuteChildScriptFile(scriptPath string) error {
+	// It's required since script translation is in progpScripts and not progpAPI.
+	cp := progpAPI.GetScriptFileCompiler()
+	scriptContent, scriptOrigin, err := cp(scriptPath)
+
+	if err == nil {
+		jsErr := m.ExecuteScript(scriptContent, scriptOrigin, scriptPath)
+		if jsErr != nil {
+			err = errors.New(jsErr.Error)
+		}
+	} else {
+		// Will avoid exception when unlocking.
+		m.callerLockMutex.Lock()
+
+		// If no error then dispose is done by a call from cppCallOnNoMoreTask
+		// before m.ExecuteScript returns. Here we only handle the case where
+		// the script hasn't reached the execute point.
+		//
+		m.dispose()
+	}
+
+	return err
+}
+
 func (m *v8ScriptContext) TryDispose() bool {
 	C.progp_DisposeContext(m.progpCtx)
 	return true
