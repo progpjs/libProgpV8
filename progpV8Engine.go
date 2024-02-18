@@ -262,10 +262,17 @@ func (m *v8ScriptContext) dispose() {
 	}
 
 	m.isDisposed = true
+
 	gContexts[m.contextId] = nil
 	gContextsMutex.Unlock()
 
-	m.taskQueue.Dispose()
+	// Allow avoiding case where the current tasks
+	// isn't completely finished while the context is exited.
+	//
+	m.taskQueue.Exit(func() {
+		C.progp_DisposeContext(m.progpCtx)
+	})
+
 	m.sharedResourceContainer.Dispose()
 
 	m.callerLockMutex.Unlock()

@@ -67,12 +67,19 @@ void onProcessRejectedPromise(v8::PromiseRejectMessage reject_message) {
 
 extern "C"
 void progp_DisposeContext(ProgpContext progpCtx) {
+    PROGP_PRINT("progp_DisposeContext / 1");
     delete(progpCtx->event);
 
-    if (progpCtx->v8Iso == v8::Isolate::GetCurrent()) progpCtx->v8Iso->Exit();
+    if (progpCtx->v8Iso == v8::Isolate::GetCurrent()) {
+        PROGP_PRINT("progp_DisposeContext / 2");
+        progpCtx->v8Iso->Exit();
+    }
+    PROGP_PRINT("progp_DisposeContext / 3");
     progpCtx->v8Iso->Dispose();
-
+    PROGP_PRINT("progp_DisposeContext / 4");
     delete(progpCtx);
+
+    PROGP_PRINT("progp_DisposeContext / 5");
 }
 
 extern "C"
