@@ -447,7 +447,7 @@ void progp_CallFunctionWithStringP2(FCT_CALLBACK_PARAMS, const char* str, size_t
 
     v8::Local<v8::Value> argArray[2];
     argArray[0] = v8::Undefined(v8Iso);
-    argArray[1] = v8::String::NewFromOneByte(v8Iso, reinterpret_cast<const uint8_t *>(str), v8::NewStringType::kNormal, (int)strLen).ToLocalChecked();
+    argArray[1] = v8::String::NewFromUtf8(v8Iso, str, v8::NewStringType::kNormal, (int)strLen).ToLocalChecked();
 
     auto isEmpty = functionRef->ref.Get(v8Iso)->Call(v8Ctx, v8Ctx->Global(), 2, argArray).IsEmpty();
 
@@ -478,7 +478,6 @@ void progp_CallFunctionWithErrorP1(FCT_CALLBACK_PARAMS, const char* str, size_t 
     FCT_CALLBACK_BEFORE
 
     v8::Local<v8::Value> argArray[1];
-    //argArray[0] = v8::String::NewFromOneByte(v8Iso, reinterpret_cast<const uint8_t *>(str), v8::NewStringType::kNormal, (int)strLen).ToLocalChecked();
     argArray[0] = v8::String::NewFromUtf8(v8Iso, str, v8::NewStringType::kNormal, (int)strLen).ToLocalChecked();
 
     auto isEmpty = functionRef->ref.Get(v8Iso)->Call(v8Ctx, v8Ctx->Global(), 1, argArray).IsEmpty();

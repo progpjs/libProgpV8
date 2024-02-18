@@ -123,8 +123,8 @@ struct s_progp_context {
 #define LONG_TO_V8VALUE(VALUE) v8::Number::New(v8Iso, VALUE)
 #define BOOL_TO_V8VALUE(VALUE) v8::Boolean::New(v8Iso, VALUE)
 
-#define CSTRING_TO_V8VALUE(VALUE) v8::String::NewFromOneByte(progpCtx->v8Iso, reinterpret_cast<const uint8_t *>(VALUE), v8::NewStringType::kNormal, (int)strlen(VALUE)).ToLocalChecked()
-#define CSTRING_TO_V8VALUE_SIZE(VALUE, SIZE) v8::String::NewFromOneByte(progpCtx->v8Iso, reinterpret_cast<const uint8_t *>(VALUE), v8::NewStringType::kNormal, (int)SIZE).ToLocalChecked()
+#define CSTRING_TO_V8VALUE(VALUE) v8::String::NewFromUtf8(progpCtx->v8Iso, VALUE, v8::NewStringType::kNormal, (int)strlen(VALUE)).ToLocalChecked()
+#define CSTRING_TO_V8VALUE_SIZE(VALUE, SIZE) v8::String::NewFromUtf8(progpCtx->v8Iso, VALUE, v8::NewStringType::kNormal, (int)SIZE).ToLocalChecked()
 
 //endregion
 
