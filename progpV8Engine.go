@@ -481,8 +481,27 @@ func (m *v8Function) CallWithStringBuffer2(value []byte) {
 	}
 }
 
+func (m *v8Function) CallWithResource1(value *progpAPI.SharedResource) {
+	m.CallWithDouble1(float64(value.GetId()))
+}
+
 func (m *v8Function) CallWithResource2(value *progpAPI.SharedResource) {
 	m.CallWithDouble2(float64(value.GetId()))
+}
+
+func (m *v8Function) CallWithDouble1(value float64) {
+	functionPtr, resourceContainer := m.prepareCall()
+	if functionPtr == nil {
+		return
+	}
+
+	if m.isAsync == cInt1 {
+		m.v8Context.taskQueue.Push(func() {
+			C.progp_CallFunctionWithDoubleP1(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent, resourceContainer, C.double(value))
+		})
+	} else {
+		C.progp_CallFunctionWithDoubleP1(functionPtr, cInt0, m.mustDisposeFunction, m.currentEvent, resourceContainer, C.double(value))
+	}
 }
 
 func (m *v8Function) CallWithDouble2(value float64) {

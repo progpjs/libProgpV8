@@ -167,6 +167,7 @@ void progp_CallFunctionWithUndefined(FCT_CALLBACK_PARAMS);
 void progp_CallFunctionWithErrorP1(FCT_CALLBACK_PARAMS, const char* str, size_t strLen);
 void progp_CallFunctionWithStringP2(FCT_CALLBACK_PARAMS, const char* str, size_t strLen);
 void progp_CallFunctionWithArrayBufferP2(FCT_CALLBACK_PARAMS, const void* buffer, size_t bufferSize);
+void progp_CallFunctionWithDoubleP1(FCT_CALLBACK_PARAMS, double value);
 void progp_CallFunctionWithDoubleP2(FCT_CALLBACK_PARAMS, double value);
 void progp_CallFunctionWithBoolP2(FCT_CALLBACK_PARAMS, bool value);
 

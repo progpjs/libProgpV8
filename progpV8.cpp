@@ -486,6 +486,18 @@ void progp_CallFunctionWithErrorP1(FCT_CALLBACK_PARAMS, const char* str, size_t 
 }
 
 extern "C"
+void progp_CallFunctionWithDoubleP1(FCT_CALLBACK_PARAMS, double value) {
+    FCT_CALLBACK_BEFORE
+
+    v8::Local<v8::Value> argArray[1];
+    argArray[0] = DOUBLE_TO_V8VALUE(value);
+
+    auto isEmpty = functionRef->ref.Get(v8Iso)->Call(v8Ctx, v8Ctx->Global(), 1, argArray).IsEmpty();
+
+    FCT_CALLBACK_AFTER
+}
+
+extern "C"
 void progp_CallFunctionWithDoubleP2(FCT_CALLBACK_PARAMS, double value) {
     FCT_CALLBACK_BEFORE
 
