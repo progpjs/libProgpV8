@@ -1419,7 +1419,6 @@ void progp_handleDraftFunction(const v8::FunctionCallbackInfo<v8::Value> &callIn
 
 void printConsole(char* text) {
     PROGP_PRINT(text);
-    std::cout << std::endl;
 }
 
 f_progp_printHandler gPrintHandler = printConsole;

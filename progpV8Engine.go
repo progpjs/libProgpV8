@@ -981,7 +981,7 @@ func cppOnEventFinished(cEventId C.uintptr_t) {
 //export cppOnPrintLine
 func cppOnPrintLine(cText *C.char) {
 	text := C.GoString(cText)
-	println(text)
+	print(text)
 }
 
 //endregion

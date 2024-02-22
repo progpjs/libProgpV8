@@ -55,6 +55,7 @@ void JsProgpPrint(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
             catch (std::exception &e) {}
         }
 
+        std::cout << std::endl;
         callInfo.GetReturnValue().SetUndefined();
 
     PROGP_V8FUNCTION_AFTER
