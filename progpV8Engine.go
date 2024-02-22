@@ -31,6 +31,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"runtime"
 	"sync"
@@ -981,7 +982,7 @@ func cppOnEventFinished(cEventId C.uintptr_t) {
 //export cppOnPrintLine
 func cppOnPrintLine(cText *C.char) {
 	text := C.GoString(cText)
-	print(text)
+	_, _ = fmt.Fprint(os.Stdout, text)
 }
 
 //endregion
