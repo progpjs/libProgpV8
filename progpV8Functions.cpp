@@ -20,6 +20,15 @@
 #include <iostream>
 #include <memory>
 
+/**
+ * JsProgpVoid allows benchmarking a function call by providing
+ * a comparison between a raw C++ call and an optimized one.
+ * @param callInfo
+ */
+void JsProgpVoid(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
+    callInfo.GetReturnValue().SetUndefined();
+}
+
 void JsProgpPrint(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
     PROGP_V8FUNCTION_BEFORE_PROGPCTX
 
@@ -46,7 +55,6 @@ void JsProgpPrint(const v8::FunctionCallbackInfo<v8::Value> &callInfo) {
             catch (std::exception &e) {}
         }
 
-        std::cout << std::endl;
         callInfo.GetReturnValue().SetUndefined();
 
     PROGP_V8FUNCTION_AFTER
@@ -100,4 +108,5 @@ void progp_CreateFunctionGroup_Internal(ProgpContext progpCtx, const std::string
     PROGP_BIND_FUNCTION("global", "progpGetModule", JsProgpGetModule);
     PROGP_BIND_FUNCTION("global", "progpStringToBuffer", JsProgpStringToBuffer);
     PROGP_BIND_FUNCTION("global", "progpBufferToString", JsProgpBufferToString);
+    PROGP_BIND_FUNCTION("global", "progpVoid", JsProgpVoid);
 }
