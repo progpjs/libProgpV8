@@ -320,10 +320,10 @@ func (m *v8ScriptContext) ExecuteScript(scriptContent string, compiledFilePath s
 	return err
 }
 
-func (m *v8ScriptContext) ExecuteScriptFile(scriptPath string) *progpAPI.JsErrorMessage {
+func (m *v8ScriptContext) ExecuteScriptFile(scriptPath string, onCompiledSuccess func()) *progpAPI.JsErrorMessage {
 	// It's required since script translation is in progpScripts and not progpAPI.
 	ex := progpAPI.GetScriptFileExecutor()
-	return ex(m, scriptPath)
+	return ex(m, scriptPath, onCompiledSuccess)
 }
 
 func (m *v8ScriptContext) ExecuteChildScriptFile(scriptPath string) error {
