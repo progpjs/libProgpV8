@@ -334,7 +334,7 @@ func (m *v8ScriptContext) ExecuteChildScriptFile(scriptPath string) error {
 	if err == nil {
 		jsErr := m.ExecuteScript(scriptContent, scriptOrigin, scriptPath)
 		if jsErr != nil {
-			err = errors.New(jsErr.Error)
+			err = createError(jsErr.Error)
 		}
 	} else {
 		// Will avoid exception when unlocking.
@@ -590,6 +590,17 @@ func (m *v8Function) EnabledResourcesAutoDisposing(currentResourceContainer *pro
 
 //endregion
 
+//region Helpers
+
+// createError purpose is to help debugging by grouping all the error emitters here.
+// By doing that you only have to put a breakpoint here in order to use the stacktrace
+// to known where exactly the error come from.
+func createError(message string) error {
+	return errors.New(message)
+}
+
+//endregion
+
 //region AnyValue
 
 var gUndefinedAnyValue = C.s_progp_anyValue{valueType: C.int(AnyValueTypeUndefined)}
@@ -607,47 +618,47 @@ func decodeAnyValue(value *C.s_progp_anyValue, expectedTypeName string, expected
 	switch valueType {
 	case AnyValueTypeUndefined:
 		if expectedTypeName != "undefined" {
-			return gNilValue, errors.New("Type " + expectedTypeName + " expected")
+			return gNilValue, createError("Type " + expectedTypeName + " expected")
 		}
 		return gNilValue, nil
 
 	case AnyValueTypeNull:
 		if expectedTypeName != "null" {
-			return gNilValue, errors.New("Type " + expectedTypeName + " expected")
+			return gNilValue, createError("Type " + expectedTypeName + " expected")
 		}
 		return gNilValue, nil
 
 	case AnyValueTypeInvalid:
-		return gNilValue, errors.New("Type " + expectedTypeName + " expected")
+		return gNilValue, createError("Type " + expectedTypeName + " expected")
 
 	case AnyValueTypeNumber:
 		if expectedTypeName == "float64" {
 			if expectedTypeName != "float64" {
-				return gNilValue, errors.New("Type " + expectedTypeName + " expected")
+				return gNilValue, createError("Type " + expectedTypeName + " expected")
 			}
 			asRealValue := float64(value.number)
 			return reflect.ValueOf(asRealValue), nil
 		} else if expectedTypeName == "float32" {
 			if expectedTypeName != "float32" {
-				return gNilValue, errors.New("Type " + expectedTypeName + " expected")
+				return gNilValue, createError("Type " + expectedTypeName + " expected")
 			}
 			asRealValue := float32(value.number)
 			return reflect.ValueOf(asRealValue), nil
 		} else if expectedTypeName == "int64" {
 			if expectedTypeName != "int64" {
-				return gNilValue, errors.New("Type " + expectedTypeName + " expected")
+				return gNilValue, createError("Type " + expectedTypeName + " expected")
 			}
 			asRealValue := int64(value.number)
 			return reflect.ValueOf(asRealValue), nil
 		} else if expectedTypeName == "int" {
 			if expectedTypeName != "int" {
-				return gNilValue, errors.New("Type " + expectedTypeName + " expected")
+				return gNilValue, createError("Type " + expectedTypeName + " expected")
 			}
 			asRealValue := int(value.number)
 			return reflect.ValueOf(asRealValue), nil
 		} else if expectedTypeName == "int32" {
 			if expectedTypeName != "int32" {
-				return gNilValue, errors.New("Type " + expectedTypeName + " expected")
+				return gNilValue, createError("Type " + expectedTypeName + " expected")
 			}
 			asRealValue := int32(value.number)
 			return reflect.ValueOf(asRealValue), nil
@@ -657,23 +668,23 @@ func decodeAnyValue(value *C.s_progp_anyValue, expectedTypeName string, expected
 			return reflect.ValueOf(asRealValue), nil
 		} else {
 			println("ProgpV8 - Unmanaged type for anyValue to any conversion: " + expectedTypeName)
-			return gNilValue, errors.New("Type " + expectedTypeName + " expected")
+			return gNilValue, createError("Type " + expectedTypeName + " expected")
 		}
 	case AnyValueTypeBoolean:
 		if expectedTypeName != "bool" {
-			return gNilValue, errors.New("Type " + expectedTypeName + " expected")
+			return gNilValue, createError("Type " + expectedTypeName + " expected")
 		}
 		asRealValue := value.size == cInt1
 		return reflect.ValueOf(asRealValue), nil
 	case AnyValueTypeString:
 		if expectedTypeName != "string" {
-			return gNilValue, errors.New("Type " + expectedTypeName + " expected")
+			return gNilValue, createError("Type " + expectedTypeName + " expected")
 		}
 		asRealValue := C.GoString((*C.char)(value.voidPtr))
 		return reflect.ValueOf(asRealValue), nil
 	case AnyValueTypeBuffer:
 		if expectedTypeName != "[]uint8" {
-			return gNilValue, errors.New("Type " + expectedTypeName + " expected")
+			return gNilValue, createError("Type " + expectedTypeName + " expected")
 		}
 		asRealValue := C.GoBytes(unsafe.Pointer(value.voidPtr), value.size)
 		return reflect.ValueOf(asRealValue), nil
@@ -699,7 +710,7 @@ func decodeAnyValue(value *C.s_progp_anyValue, expectedTypeName string, expected
 		return genValue, err
 	case AnyValueTypeFunction:
 		if expectedTypeName != "progpAPI.JsFunction" {
-			return gNilValue, errors.New("Type " + expectedTypeName + " expected")
+			return gNilValue, createError("Type " + expectedTypeName + " expected")
 		}
 
 		var asRealValue progpAPI.JsFunction
