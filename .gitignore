@@ -1,3 +1,7 @@
 /.idea
 .DS_Store
 /cmake-build-debug
+
+# Allows to keep the blank version.
+./generated.cpp
+./generated.go
