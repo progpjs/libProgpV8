@@ -553,6 +553,10 @@ func (m *v8Function) CallWithBool2(value bool) {
 	}
 }
 
+func (m *v8Function) CallWith(f func()) {
+	// TODO
+}
+
 func (m *v8Function) CallWithUndefined() {
 	functionPtr, resourceContainer := m.prepareCall()
 	if functionPtr == nil {
