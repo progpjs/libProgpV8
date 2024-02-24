@@ -4,4 +4,5 @@
 
 # Allows to keep the blank version.
 generated.cpp
+generated.h
 generated.go

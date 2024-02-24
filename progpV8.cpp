@@ -47,9 +47,6 @@ f_progp_v8_function_allowedFunctionChecker gV8AllowedFunctionChecker = nullptr;
 
 ProgpContext gProgpDbgCtx;
 
-void progp_DeclareGlobalFunctions(ProgpContext progpCtx);
-void onJavascriptError(ProgpContext progpCtx, const v8::Local<v8::Context> &v8Ctx, v8::Local<v8::Message>& message);
-
 //region Engine
 
 void onProcessRejectedPromise(v8::PromiseRejectMessage reject_message) {
@@ -406,26 +403,7 @@ s_progp_v8_function* progpFunctions_NewPointer(ProgpContext progpCtx, const v8::
 
 //region Functions: call from external / callbacks
 
-#define FCT_CALLBACK_BEFORE \
-    auto progpCtx = functionRef->progpCtx; \
-    V8CTX_ACCESS(); \
-    if (eventToRestore!=nullptr) progpCtx->event = eventToRestore; \
-    if (resourceContainerId!=0) useNewEvent(progpCtx, resourceContainerId); \
-    v8::TryCatch tryCatch(v8Iso);
-
-#define FCT_CALLBACK_AFTER \
-    if (isEmpty) { \
-        if (tryCatch.HasCaught()) { \
-            auto catchError = tryCatch.Message(); \
-            onJavascriptError(progpCtx, v8Ctx, catchError); \
-        } \
-    } \
-    \
-    if (mustDisposeFunction) delete(functionRef); \
-    if (resourceContainerId!=0) progp_DecreaseContextRef(progpCtx); \
-    if (mustDecreaseTaskCount) progp_DecreaseContextRef(progpCtx);
-
-inline void useNewEvent(ProgpContext progpCtx, uintptr_t resourceContainerId) {
+void useNewEvent(ProgpContext progpCtx, uintptr_t resourceContainerId) {
     auto newEvent = new s_progp_event();
     newEvent->id = resourceContainerId;
     newEvent->refCount = 0;

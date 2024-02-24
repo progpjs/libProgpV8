@@ -205,6 +205,10 @@ void progp_WaitDebuggerReady();
 
 void* progp_CopyGoBuffer(void* buffer, int size);
 
+#ifndef PROGP_STANDALONE
+#include "./generated.h"
+#endif
+
 #if __cplusplus
 }
 #endif

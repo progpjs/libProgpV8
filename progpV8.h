@@ -84,6 +84,25 @@ using tcp = boost::asio::ip::tcp;
         v8Iso->ThrowError(v8::String::NewFromUtf8(v8Iso, message, v8::NewStringType::kNormal, (int) strlen(message)).ToLocalChecked()); \
     }
 
+#define FCT_CALLBACK_BEFORE \
+    auto progpCtx = functionRef->progpCtx; \
+    V8CTX_ACCESS(); \
+    if (eventToRestore!=nullptr) progpCtx->event = eventToRestore; \
+    if (resourceContainerId!=0) useNewEvent(progpCtx, resourceContainerId); \
+    v8::TryCatch tryCatch(v8Iso);
+
+#define FCT_CALLBACK_AFTER \
+    if (isEmpty) { \
+        if (tryCatch.HasCaught()) { \
+            auto catchError = tryCatch.Message(); \
+            onJavascriptError(progpCtx, v8Ctx, catchError); \
+        } \
+    } \
+    \
+    if (mustDisposeFunction) delete(functionRef); \
+    if (resourceContainerId!=0) progp_DecreaseContextRef(progpCtx); \
+    if (mustDecreaseTaskCount) progp_DecreaseContextRef(progpCtx);
+
 #define PROGP_BIND_FUNCTION(GROUP, NAME, FCT_REF) \
     if (group==GROUP) progp_AddFunctionToObject(progpCtx, GROUP, v8Host, NAME, FCT_REF)
 
@@ -543,6 +562,11 @@ void progp_CreateFunctionGroup_Internal(ProgpContext progpCtx, const std::string
 s_progp_v8_function* progpFunctions_NewPointer(ProgpContext progpCtx, const v8::Local<v8::Function> &v8Function);
 
 void progp_PrintErrorMessage(s_progp_v8_errorMessage* msg);
+
+void useNewEvent(ProgpContext progpCtx, uintptr_t resourceContainerId);
+
+void progp_DeclareGlobalFunctions(ProgpContext progpCtx);
+void onJavascriptError(ProgpContext progpCtx, const v8::Local<v8::Context> &v8Ctx, v8::Local<v8::Message>& message);
 
 #ifdef PROGP_ADD_EXTERNAL_FUNCTIONS
 void progp_DeclareAllFunctions_External();

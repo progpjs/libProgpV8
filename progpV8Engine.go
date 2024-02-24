@@ -135,6 +135,16 @@ func (m *V8Engine) SetAllowedFunctionsChecker(handler progpAPI.CheckAllowedFunct
 	gAllowedFunctionsChecker = handler
 }
 
+func (m *V8Engine) GetFunctionCaller(functionSignature string) any {
+	return gFunctionCallerMap[functionSignature]
+}
+
+var gFunctionCallerMap = make(map[string]any)
+
+func registerFunctionCaller(fct any, signature string) {
+	gFunctionCallerMap[signature] = fct
+}
+
 func asScriptErrorMessage(ctx *v8ScriptContext, ptr *C.s_progp_v8_errorMessage) *progpAPI.JsErrorMessage {
 	m := progpAPI.NewScriptErrorMessage(ctx)
 
