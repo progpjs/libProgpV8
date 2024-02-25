@@ -512,6 +512,43 @@ void progp_CallFunctionWithUndefined(FCT_CALLBACK_PARAMS) {
 
 //endregion
 
+//region Calling function from Golang / dynamic
+
+extern "C"
+s_progp_dynamicFunctionCall* progp_DynamicFunctionCaller_New(int argCount) {
+    auto dfc = new(s_progp_dynamicFunctionCall);
+    dfc->argCount = argCount;
+    dfc->callArgs = (s_progp_anyValue**)calloc(argCount, sizeof(s_progp_anyValue));
+    return dfc;
+}
+
+extern "C"
+void progp_DynamicFunctionCaller_AddParam(s_progp_dynamicFunctionCall* dfc, s_progp_anyValue* anyValue, int offset) {
+    dfc->callArgs[offset] = anyValue;
+}
+
+extern "C"
+void progp_DynamicFunctionCaller_Call(s_progp_dynamicFunctionCall* dfc, FCT_CALLBACK_PARAMS) {
+    FCT_CALLBACK_BEFORE
+    v8::Local<v8::Value> argArray[dfc->argCount];
+
+    for (int i=0;i<dfc->argCount;i++) {
+        s_progp_anyValue anyValue = *(dfc->callArgs[i]);
+        argArray[i] = progp_AnyValueToV8Value(progpCtx, v8Ctx, anyValue);
+        // Note: callArgs lifetime is controller by the Go caller so we don't deleter the anyValues here.
+    }
+
+    auto isEmpty = functionRef->ref.Get(v8Iso)->Call(v8Ctx, v8Ctx->Global(), dfc->argCount, argArray).IsEmpty();
+
+    delete(dfc->callArgs);
+    delete(dfc);
+
+    // Note: FCT_CALLBACK_AFTER destroy the function ref so we don't destroy it.
+    FCT_CALLBACK_AFTER
+}
+
+//endregion
+
 //region Others
 
 void* progp_CopyGoBuffer(void* buffer, int size) {

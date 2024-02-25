@@ -173,11 +173,25 @@ void progp_CallFunctionWithBoolP2(FCT_CALLBACK_PARAMS, bool value);
 
 //endregion
 
+//region Calling function from Golang / dynamic
+
+typedef struct s_progp_dynamicFunctionCall {
+    s_progp_anyValue** callArgs;
+    int argCount;
+} s_progp_dynamicFunctionCall;
+
+s_progp_dynamicFunctionCall* progp_DynamicFunctionCaller_New(int argCount);
+void progp_DynamicFunctionCaller_AddParam(s_progp_dynamicFunctionCall* dfc, s_progp_anyValue* anyValue, int offset);
+void progp_DynamicFunctionCaller_Call(s_progp_dynamicFunctionCall* dfc, FCT_CALLBACK_PARAMS);
+
+//endregion
+
 //region Calling Golang function
 
 void progp_DeclareDynamicFunction(ProgpContext progpCtx, const char* functionName);
 
 //endregion
+
 
 //region Golang binding
 

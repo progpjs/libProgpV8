@@ -606,6 +606,25 @@ func (m *v8Function) CallWithError(err error) {
 	}
 }
 
+func (m *v8Function) DynamicFunctionCaller(values ...any) {
+	cDynFunctionCaller := C.progp_DynamicFunctionCaller_New(C.int(len(values)))
+
+	for offset, value := range values {
+		anyValue := encodeAnyValue(reflect.ValueOf(value))
+		C.progp_DynamicFunctionCaller_AddParam(cDynFunctionCaller, &anyValue, C.int(offset))
+	}
+
+	functionPtr, resourceContainer := m.prepareCall()
+
+	if m.isAsync == cInt1 {
+		m.v8Context.taskQueue.Push(func() {
+			C.progp_DynamicFunctionCaller_Call(cDynFunctionCaller, functionPtr, cInt0, m.mustDisposeFunction, m.currentEvent, resourceContainer)
+		})
+	} else {
+		C.progp_DynamicFunctionCaller_Call(cDynFunctionCaller, functionPtr, cInt0, m.mustDisposeFunction, m.currentEvent, resourceContainer)
+	}
+}
+
 //endregion
 
 //region Helpers
@@ -745,10 +764,6 @@ func decodeAnyValue(value *C.s_progp_anyValue, expectedTypeName string, expected
 	return gNilValue, nil
 }
 
-var gTypeByteArray = reflect.TypeOf([]byte{})
-var gTypeResource = reflect.TypeOf(&progpAPI.SharedResource{})
-var gStringBuffer = reflect.TypeOf(progpAPI.StringBuffer{})
-
 func encodeAnyValue(resV reflect.Value) C.s_progp_anyValue {
 	if !resV.IsValid() {
 		return gUndefinedAnyValue
@@ -821,6 +836,10 @@ func encodeAnyValue(resV reflect.Value) C.s_progp_anyValue {
 		return res
 	}
 }
+
+var gTypeByteArray = reflect.TypeOf([]byte{})
+var gTypeResource = reflect.TypeOf(&progpAPI.SharedResource{})
+var gStringBuffer = reflect.TypeOf(progpAPI.StringBuffer{})
 
 //endregion
 
