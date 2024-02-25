@@ -391,6 +391,7 @@ func (m *v8ScriptContext) AddDraftFunction(functionName string) {
 
 type v8Function struct {
 	isAsync                 C.int
+	mustDecreaseTasks       C.int
 	mustDisposeFunction     C.int
 	functionPtr             C.ProgpV8FunctionPtr
 	currentEvent            C.ProgpEvent
@@ -402,6 +403,7 @@ func newV8Function(isAsync C.int, ptr C.ProgpV8FunctionPtr, currentEvent C.Progp
 	res := new(v8Function)
 	res.functionPtr = ptr
 	res.isAsync = isAsync
+	res.mustDecreaseTasks = isAsync
 	res.currentEvent = currentEvent
 	res.v8Context = (*v8ScriptContext)(unsafe.Pointer(uintptr(currentEvent.contextData)))
 
@@ -443,6 +445,19 @@ func (m *v8Function) prepareCall() (C.ProgpV8FunctionPtr, C.uintptr_t) {
 	return m.functionPtr, rcPtr
 }
 
+func (m *v8Function) KeepAlive() {
+	m.mustDisposeFunction = cInt0
+	m.mustDecreaseTasks = cInt0
+	m.isAsync = cInt1
+
+	// Avoid restoring the event context that was the context of the function.
+	m.currentEvent = nil
+}
+
+func (m *v8Function) EnabledResourcesAutoDisposing(currentResourceContainer *progpAPI.SharedResourceContainer) {
+	m.parentResourceContainer = currentResourceContainer
+}
+
 func (m *v8Function) CallWithString2(value string) {
 	functionPtr, resourceContainer := m.prepareCall()
 	if functionPtr == nil {
@@ -452,7 +467,7 @@ func (m *v8Function) CallWithString2(value string) {
 	if m.isAsync == cInt1 {
 		m.v8Context.taskQueue.Push(func() {
 			uPtr := unsafe.Pointer(unsafe.StringData(value))
-			C.progp_CallFunctionWithStringP2(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent, resourceContainer, (*C.char)(uPtr), C.size_t(len(value)))
+			C.progp_CallFunctionWithStringP2(functionPtr, m.mustDecreaseTasks, m.mustDisposeFunction, m.currentEvent, resourceContainer, (*C.char)(uPtr), C.size_t(len(value)))
 		})
 	} else {
 		uPtr := unsafe.Pointer(unsafe.StringData(value))
@@ -468,7 +483,7 @@ func (m *v8Function) CallWithArrayBuffer2(value []byte) {
 
 	if m.isAsync == cInt1 {
 		m.v8Context.taskQueue.Push(func() {
-			C.progp_CallFunctionWithArrayBufferP2(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent, resourceContainer, unsafe.Pointer(&value[0]), C.size_t(len(value)))
+			C.progp_CallFunctionWithArrayBufferP2(functionPtr, m.mustDecreaseTasks, m.mustDisposeFunction, m.currentEvent, resourceContainer, unsafe.Pointer(&value[0]), C.size_t(len(value)))
 		})
 	} else {
 		C.progp_CallFunctionWithArrayBufferP2(functionPtr, cInt0, m.mustDisposeFunction, m.currentEvent, resourceContainer, unsafe.Pointer(&value[0]), C.size_t(len(value)))
@@ -484,7 +499,7 @@ func (m *v8Function) CallWithStringBuffer2(value []byte) {
 	if m.isAsync == cInt1 {
 		m.v8Context.taskQueue.Push(func() {
 			uPtr := unsafe.Pointer(&value[0])
-			C.progp_CallFunctionWithStringP2(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent, resourceContainer, (*C.char)(uPtr), C.size_t(len(value)))
+			C.progp_CallFunctionWithStringP2(functionPtr, m.mustDecreaseTasks, m.mustDisposeFunction, m.currentEvent, resourceContainer, (*C.char)(uPtr), C.size_t(len(value)))
 		})
 	} else {
 		uPtr := unsafe.Pointer(&value[0])
@@ -508,7 +523,7 @@ func (m *v8Function) CallWithDouble1(value float64) {
 
 	if m.isAsync == cInt1 {
 		m.v8Context.taskQueue.Push(func() {
-			C.progp_CallFunctionWithDoubleP1(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent, resourceContainer, C.double(value))
+			C.progp_CallFunctionWithDoubleP1(functionPtr, m.mustDecreaseTasks, m.mustDisposeFunction, m.currentEvent, resourceContainer, C.double(value))
 		})
 	} else {
 		C.progp_CallFunctionWithDoubleP1(functionPtr, cInt0, m.mustDisposeFunction, m.currentEvent, resourceContainer, C.double(value))
@@ -523,7 +538,7 @@ func (m *v8Function) CallWithDouble2(value float64) {
 
 	if m.isAsync == cInt1 {
 		m.v8Context.taskQueue.Push(func() {
-			C.progp_CallFunctionWithDoubleP2(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent, resourceContainer, C.double(value))
+			C.progp_CallFunctionWithDoubleP2(functionPtr, m.mustDecreaseTasks, m.mustDisposeFunction, m.currentEvent, resourceContainer, C.double(value))
 		})
 	} else {
 		C.progp_CallFunctionWithDoubleP2(functionPtr, cInt0, m.mustDisposeFunction, m.currentEvent, resourceContainer, C.double(value))
@@ -539,9 +554,9 @@ func (m *v8Function) CallWithBool2(value bool) {
 	if m.isAsync == cInt1 {
 		m.v8Context.taskQueue.Push(func() {
 			if value {
-				C.progp_CallFunctionWithBoolP2(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent, resourceContainer, cInt1)
+				C.progp_CallFunctionWithBoolP2(functionPtr, m.mustDecreaseTasks, m.mustDisposeFunction, m.currentEvent, resourceContainer, cInt1)
 			} else {
-				C.progp_CallFunctionWithBoolP2(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent, resourceContainer, cInt0)
+				C.progp_CallFunctionWithBoolP2(functionPtr, m.mustDecreaseTasks, m.mustDisposeFunction, m.currentEvent, resourceContainer, cInt0)
 			}
 		})
 	} else {
@@ -553,10 +568,6 @@ func (m *v8Function) CallWithBool2(value bool) {
 	}
 }
 
-func (m *v8Function) CallWith(f func()) {
-	// TODO
-}
-
 func (m *v8Function) CallWithUndefined() {
 	functionPtr, resourceContainer := m.prepareCall()
 	if functionPtr == nil {
@@ -565,7 +576,7 @@ func (m *v8Function) CallWithUndefined() {
 
 	if m.isAsync == cInt1 {
 		m.v8Context.taskQueue.Push(func() {
-			C.progp_CallFunctionWithUndefined(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent, resourceContainer)
+			C.progp_CallFunctionWithUndefined(functionPtr, m.mustDecreaseTasks, m.mustDisposeFunction, m.currentEvent, resourceContainer)
 		})
 	} else {
 		C.progp_CallFunctionWithUndefined(functionPtr, cInt0, m.mustDisposeFunction, m.currentEvent, resourceContainer)
@@ -583,23 +594,12 @@ func (m *v8Function) CallWithError(err error) {
 	if m.isAsync == cInt1 {
 		m.v8Context.taskQueue.Push(func() {
 			uPtr := unsafe.Pointer(unsafe.StringData(value))
-			C.progp_CallFunctionWithErrorP1(functionPtr, cInt1, m.mustDisposeFunction, m.currentEvent, resourceContainer, (*C.char)(uPtr), C.size_t(len(value)))
+			C.progp_CallFunctionWithErrorP1(functionPtr, m.mustDecreaseTasks, m.mustDisposeFunction, m.currentEvent, resourceContainer, (*C.char)(uPtr), C.size_t(len(value)))
 		})
 	} else {
 		uPtr := unsafe.Pointer(unsafe.StringData(value))
 		C.progp_CallFunctionWithErrorP1(functionPtr, cInt0, m.mustDisposeFunction, m.currentEvent, resourceContainer, (*C.char)(uPtr), C.size_t(len(value)))
 	}
-}
-
-func (m *v8Function) KeepAlive() {
-	m.mustDisposeFunction = cInt0
-
-	// Avoid restoring the event context that was the context of the function.
-	m.currentEvent = nil
-}
-
-func (m *v8Function) EnabledResourcesAutoDisposing(currentResourceContainer *progpAPI.SharedResourceContainer) {
-	m.parentResourceContainer = currentResourceContainer
 }
 
 //endregion
