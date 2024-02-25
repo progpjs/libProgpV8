@@ -448,10 +448,14 @@ func (m *v8Function) prepareCall() (C.ProgpV8FunctionPtr, C.uintptr_t) {
 func (m *v8Function) KeepAlive() {
 	m.mustDisposeFunction = cInt0
 	m.mustDecreaseTasks = cInt0
-	m.isAsync = cInt1
 
 	// Avoid restoring the event context that was the context of the function.
 	m.currentEvent = nil
+
+	// Force the use of async mode, which is a little slower but allow avoiding
+	// difficulties in high load scenarios or if your function use slow/blocking functions.
+	//
+	m.isAsync = cInt1
 }
 
 func (m *v8Function) EnabledResourcesAutoDisposing(currentResourceContainer *progpAPI.SharedResourceContainer) {
