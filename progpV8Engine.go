@@ -203,6 +203,14 @@ var gSizeOfAnyValueStruct = int(C.progp_GetSizeOfAnyValueStruct())
 var gFunctionRegistry = progpAPI.GetFunctionRegistry()
 var gAllowedFunctionsChecker progpAPI.CheckAllowedFunctionsF
 
+func asCBool(v bool) C.int {
+	if v {
+		return cInt1
+	} else {
+		return cInt0
+	}
+}
+
 const cInt0 = C.int(0)
 const cInt1 = C.int(1)
 const cUintPtr0 = C.uintptr_t(0)
