@@ -3,6 +3,11 @@
 .DS_Store
 
 # Allows to keep the blank version.
+#
+generated.cpp
+generated.h
+generated.go
+#
 generated.cpp.old
 generated.h.old
 generated.go.old
