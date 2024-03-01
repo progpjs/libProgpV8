@@ -160,6 +160,7 @@ func asScriptErrorMessage(ctx *v8ScriptContext, ptr *C.s_progp_v8_errorMessage) 
 	m.EndPosition = int(ptr.endPosition)
 
 	m.SourceMapUrl = C.GoString(ptr.sourceMapUrl)
+	m.SourceMap = ctx.sourceMap
 
 	m.StackTraceFrameCount = int(ptr.stackTraceFrameCount)
 	frameArrayPtr := ptr.stackTraceFrameArray
@@ -226,6 +227,7 @@ type v8ScriptContext struct {
 	taskQueue               *progpAPI.TaskQueue
 	callerLockMutex         sync.Mutex
 	scriptPath              string
+	sourceMap               string
 	isDisposed              bool
 	contextId               int
 }
@@ -303,11 +305,12 @@ func (m *v8ScriptContext) GetSecurityGroup() string {
 	return m.securityGroup
 }
 
-func (m *v8ScriptContext) ExecuteScript(scriptContent string, compiledFilePath string, sourceScriptPath string) *progpAPI.JsErrorMessage {
+func (m *v8ScriptContext) ExecuteScript(scriptContent string, compiledFilePath string, sourceScriptPath string, sourceMap string) *progpAPI.JsErrorMessage {
 	progpAPI.DeclareBackgroundTaskStarted()
 	defer progpAPI.DeclareBackgroundTaskEnded()
 
 	m.scriptPath = compiledFilePath
+	m.sourceMap = sourceMap
 
 	m.callerLockMutex.Lock()
 
@@ -347,10 +350,10 @@ func (m *v8ScriptContext) ExecuteScriptFile(scriptPath string, onCompiledSuccess
 func (m *v8ScriptContext) ExecuteChildScriptFile(scriptPath string) error {
 	// It's required since script translation is in progpScripts and not progpAPI.
 	cp := progpAPI.GetScriptFileCompiler()
-	scriptContent, scriptOrigin, err := cp(scriptPath)
+	scriptContent, scriptOrigin, sourceMap, err := cp(scriptPath)
 
 	if err == nil {
-		jsErr := m.ExecuteScript(scriptContent, scriptOrigin, scriptPath)
+		jsErr := m.ExecuteScript(scriptContent, scriptOrigin, scriptPath, sourceMap)
 		if jsErr != nil {
 			err = createError(jsErr.Error)
 		}
