@@ -9,10 +9,18 @@ macro(progp_detect_architecture)
         set(PROGP_ARCH "darwin_arm64")
     elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux" AND ${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64")
         set(PROGP_ARCH "linux_x86_64")
+
+        SET (CMAKE_C_COMPILER   "/usr/bin/clang")
+        SET (CMAKE_CXX_COMPILER "/usr/bin/clang++")
+
+        SET (CMAKE_AR      "/usr/bin/llvm-ar")
+        SET (CMAKE_LINKER  "/usr/bin/llvm-ld")
+        SET (CMAKE_NM      "/usr/bin/llvm-nm")
+        SET (CMAKE_OBJDUMP "/usr/bin/llvm-objdump")
+        SET (CMAKE_RANLIB  "/usr/bin/llvm-ranlib")
     else()
         set(PROGP_ARCH "unknown")
     endif()
-
 endmacro()
 
 macro(progp_find_v8)
@@ -77,6 +85,11 @@ endmacro()
 progp_init()
 #progp_printInfos()
 progp_buildAsExecutable()
+
+# To use Clang in Ubuntu:
+# sudo update-alternatives --config c++
+# Once done select Clang
+
 
 
 

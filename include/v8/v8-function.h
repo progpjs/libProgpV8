@@ -59,7 +59,6 @@ class V8_EXPORT Function : public Object {
   void SetName(Local<String> name);
   Local<Value> GetName() const;
 
-  V8_DEPRECATED("No direct replacement")
   MaybeLocal<UnboundScript> GetUnboundScript() const;
 
   /**
@@ -86,12 +85,6 @@ class V8_EXPORT Function : public Object {
    * kLineOffsetNotFound if no information available.
    */
   int GetScriptColumnNumber() const;
-
-  /**
-   * Returns zero based start position (character offset) of function body and
-   * kLineOffsetNotFound if no information available.
-   */
-  int GetScriptStartPosition() const;
 
   /**
    * Returns scriptId.

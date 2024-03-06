@@ -33,11 +33,10 @@ struct DijkstraWriteBarrierPolicy {
     // barrier doesn't break the tri-color invariant.
   }
 
-  template <WriteBarrierSlotType SlotType>
   V8_INLINE static void AssigningBarrier(const void* slot, const void* value) {
 #ifdef CPPGC_SLIM_WRITE_BARRIER
     if (V8_UNLIKELY(WriteBarrier::IsEnabled()))
-      WriteBarrier::CombinedWriteBarrierSlow<SlotType>(slot);
+      WriteBarrier::CombinedWriteBarrierSlow(slot);
 #else   // !CPPGC_SLIM_WRITE_BARRIER
     WriteBarrier::Params params;
     const WriteBarrier::Type type =
@@ -46,32 +45,11 @@ struct DijkstraWriteBarrierPolicy {
 #endif  // !CPPGC_SLIM_WRITE_BARRIER
   }
 
-  template <WriteBarrierSlotType SlotType>
-  V8_INLINE static void AssigningBarrier(const void* slot, RawPointer storage) {
-    static_assert(
-        SlotType == WriteBarrierSlotType::kUncompressed,
-        "Assigning storages of Member and UncompressedMember is not supported");
-#ifdef CPPGC_SLIM_WRITE_BARRIER
-    if (V8_UNLIKELY(WriteBarrier::IsEnabled()))
-      WriteBarrier::CombinedWriteBarrierSlow<SlotType>(slot);
-#else   // !CPPGC_SLIM_WRITE_BARRIER
-    WriteBarrier::Params params;
-    const WriteBarrier::Type type =
-        WriteBarrier::GetWriteBarrierType(slot, storage, params);
-    WriteBarrier(type, params, slot, storage.Load());
-#endif  // !CPPGC_SLIM_WRITE_BARRIER
-  }
-
-#if defined(CPPGC_POINTER_COMPRESSION)
-  template <WriteBarrierSlotType SlotType>
   V8_INLINE static void AssigningBarrier(const void* slot,
-                                         CompressedPointer storage) {
-    static_assert(
-        SlotType == WriteBarrierSlotType::kCompressed,
-        "Assigning storages of Member and UncompressedMember is not supported");
+                                         MemberStorage storage) {
 #ifdef CPPGC_SLIM_WRITE_BARRIER
     if (V8_UNLIKELY(WriteBarrier::IsEnabled()))
-      WriteBarrier::CombinedWriteBarrierSlow<SlotType>(slot);
+      WriteBarrier::CombinedWriteBarrierSlow(slot);
 #else   // !CPPGC_SLIM_WRITE_BARRIER
     WriteBarrier::Params params;
     const WriteBarrier::Type type =
@@ -79,7 +57,6 @@ struct DijkstraWriteBarrierPolicy {
     WriteBarrier(type, params, slot, storage.Load());
 #endif  // !CPPGC_SLIM_WRITE_BARRIER
   }
-#endif  // defined(CPPGC_POINTER_COMPRESSION)
 
  private:
   V8_INLINE static void WriteBarrier(WriteBarrier::Type type,
@@ -101,9 +78,7 @@ struct DijkstraWriteBarrierPolicy {
 
 struct NoWriteBarrierPolicy {
   V8_INLINE static void InitializingBarrier(const void*, const void*) {}
-  template <WriteBarrierSlotType>
   V8_INLINE static void AssigningBarrier(const void*, const void*) {}
-  template <WriteBarrierSlotType, typename MemberStorage>
   V8_INLINE static void AssigningBarrier(const void*, MemberStorage) {}
 };
 
@@ -232,8 +207,7 @@ template <typename T, typename WeaknessPolicy,
           typename CheckingPolicy = DefaultPersistentCheckingPolicy>
 class BasicPersistent;
 template <typename T, typename WeaknessTag, typename WriteBarrierPolicy,
-          typename CheckingPolicy = DefaultMemberCheckingPolicy,
-          typename StorageType = DefaultMemberStorage>
+          typename CheckingPolicy = DefaultMemberCheckingPolicy>
 class BasicMember;
 
 }  // namespace internal

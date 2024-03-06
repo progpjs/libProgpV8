@@ -27,20 +27,14 @@ namespace internal {
 
 class BasicTracedReferenceExtractor;
 
-enum class TracedReferenceStoreMode {
+enum class GlobalHandleStoreMode {
   kInitializingStore,
   kAssigningStore,
 };
 
-enum class TracedReferenceHandling {
-  kDefault,  // See EmbedderRootsHandler::IsRoot().
-  kDroppable
-};
-
 V8_EXPORT internal::Address* GlobalizeTracedReference(
-    internal::Isolate* isolate, internal::Address value,
-    internal::Address* slot, TracedReferenceStoreMode store_mode,
-    internal::TracedReferenceHandling reference_handling);
+    internal::Isolate* isolate, internal::Address* handle,
+    internal::Address* slot, GlobalHandleStoreMode store_mode);
 V8_EXPORT void MoveTracedReference(internal::Address** from,
                                    internal::Address** to);
 V8_EXPORT void CopyTracedReference(const internal::Address* const* from,
@@ -49,12 +43,14 @@ V8_EXPORT void DisposeTracedReference(internal::Address* global_handle);
 
 }  // namespace internal
 
-/**
- * An indirect handle, where the indirect pointer points to a GlobalHandles
- * node.
- */
-class TracedReferenceBase : public api_internal::IndirectHandleBase {
+class TracedReferenceBase {
  public:
+  /**
+   * Returns true if the reference is empty, i.e., has not been assigned
+   * object.
+   */
+  bool IsEmpty() const { return val_ == nullptr; }
+
   /**
    * If non-empty, destroy the underlying storage cell. |IsEmpty| will return
    * true after this call.
@@ -64,9 +60,9 @@ class TracedReferenceBase : public api_internal::IndirectHandleBase {
   /**
    * Construct a Local<Value> from this handle.
    */
-  V8_INLINE Local<Value> Get(Isolate* isolate) const {
+  V8_INLINE v8::Local<v8::Value> Get(v8::Isolate* isolate) const {
     if (IsEmpty()) return Local<Value>();
-    return Local<Value>::New(isolate, this->value<Value>());
+    return Local<Value>::New(isolate, reinterpret_cast<Value*>(val_));
   }
 
   /**
@@ -80,24 +76,20 @@ class TracedReferenceBase : public api_internal::IndirectHandleBase {
   /**
    * Assigns a wrapper class ID to the handle.
    */
-  V8_DEPRECATED("Embedders need to maintain state for references themselves.")
   V8_INLINE void SetWrapperClassId(uint16_t class_id);
 
   /**
    * Returns the class ID previously assigned to this handle or 0 if no class ID
    * was previously assigned.
    */
-  V8_DEPRECATED("Embedders need to maintain state for references themselves.")
   V8_INLINE uint16_t WrapperClassId() const;
 
  protected:
-  V8_INLINE TracedReferenceBase() = default;
-
   /**
    * Update this reference in a thread-safe way.
    */
   void SetSlotThreadSafe(void* new_val) {
-    reinterpret_cast<std::atomic<void*>*>(&slot())->store(
+    reinterpret_cast<std::atomic<void*>*>(&val_)->store(
         new_val, std::memory_order_relaxed);
   }
 
@@ -105,11 +97,14 @@ class TracedReferenceBase : public api_internal::IndirectHandleBase {
    * Get this reference in a thread-safe way
    */
   const void* GetSlotThreadSafe() const {
-    return reinterpret_cast<std::atomic<const void*> const*>(&slot())->load(
+    return reinterpret_cast<std::atomic<const void*> const*>(&val_)->load(
         std::memory_order_relaxed);
   }
 
   V8_EXPORT void CheckValue() const;
+
+  // val_ points to a GlobalHandles node.
+  internal::Address* val_ = nullptr;
 
   friend class internal::BasicTracedReferenceExtractor;
   template <typename F>
@@ -148,16 +143,18 @@ class BasicTracedReference : public TracedReferenceBase {
         const_cast<BasicTracedReference<T>&>(*this));
   }
 
-  V8_DEPRECATE_SOON("Use Get to convert to Local instead")
-  V8_INLINE T* operator->() const {
+  T* operator->() const {
 #ifdef V8_ENABLE_CHECKS
     CheckValue();
 #endif  // V8_ENABLE_CHECKS
-    return this->template value<T>();
+    return reinterpret_cast<T*>(val_);
   }
-
-  V8_DEPRECATE_SOON("Use Get to convert to Local instead")
-  V8_INLINE T* operator*() const { return this->operator->(); }
+  T* operator*() const {
+#ifdef V8_ENABLE_CHECKS
+    CheckValue();
+#endif  // V8_ENABLE_CHECKS
+    return reinterpret_cast<T*>(val_);
+  }
 
  private:
   /**
@@ -165,10 +162,9 @@ class BasicTracedReference : public TracedReferenceBase {
    */
   BasicTracedReference() = default;
 
-  V8_INLINE static internal::Address* NewFromNonEmptyValue(
-      Isolate* isolate, T* that, internal::Address** slot,
-      internal::TracedReferenceStoreMode store_mode,
-      internal::TracedReferenceHandling reference_handling);
+  V8_INLINE static internal::Address* New(
+      Isolate* isolate, T* that, void* slot,
+      internal::GlobalHandleStoreMode store_mode);
 
   template <typename F>
   friend class Local;
@@ -189,14 +185,12 @@ class BasicTracedReference : public TracedReferenceBase {
 template <typename T>
 class TracedReference : public BasicTracedReference<T> {
  public:
-  struct IsDroppable {};
-
   using BasicTracedReference<T>::Reset;
 
   /**
    * An empty TracedReference without storage cell.
    */
-  V8_INLINE TracedReference() = default;
+  TracedReference() : BasicTracedReference<T>() {}
 
   /**
    * Construct a TracedReference from a Local.
@@ -206,35 +200,9 @@ class TracedReference : public BasicTracedReference<T> {
    */
   template <class S>
   TracedReference(Isolate* isolate, Local<S> that) : BasicTracedReference<T>() {
+    this->val_ = this->New(isolate, that.val_, &this->val_,
+                           internal::GlobalHandleStoreMode::kInitializingStore);
     static_assert(std::is_base_of<T, S>::value, "type check");
-    if (V8_UNLIKELY(that.IsEmpty())) {
-      return;
-    }
-    this->slot() = this->NewFromNonEmptyValue(
-        isolate, *that, &this->slot(),
-        internal::TracedReferenceStoreMode::kInitializingStore,
-        internal::TracedReferenceHandling::kDefault);
-  }
-
-  /**
-   * Construct a droppable TracedReference from a Local. Droppable means that V8
-   * is free to reclaim the pointee if it is unmodified and otherwise
-   * unreachable
-   *
-   * When the Local is non-empty, a new storage cell is created
-   * pointing to the same object.
-   */
-  template <class S>
-  TracedReference(Isolate* isolate, Local<S> that, IsDroppable)
-      : BasicTracedReference<T>() {
-    static_assert(std::is_base_of<T, S>::value, "type check");
-    if (V8_UNLIKELY(that.IsEmpty())) {
-      return;
-    }
-    this->slot() = this->NewFromNonEmptyValue(
-        isolate, *that, &this->slot(),
-        internal::TracedReferenceStoreMode::kInitializingStore,
-        internal::TracedReferenceHandling::kDroppable);
   }
 
   /**
@@ -298,18 +266,11 @@ class TracedReference : public BasicTracedReference<T> {
   V8_INLINE TracedReference& operator=(const TracedReference<S>& rhs);
 
   /**
-   * Always resets the reference. Creates a new reference from `other` if it is
-   * non-empty.
+   * If non-empty, destroy the underlying storage cell and create a new one with
+   * the contents of other if other is non empty
    */
   template <class S>
   V8_INLINE void Reset(Isolate* isolate, const Local<S>& other);
-
-  /**
-   * Always resets the reference. Creates a new reference from `other` if it is
-   * non-empty. The new reference is droppable, see constructor.
-   */
-  template <class S>
-  V8_INLINE void Reset(Isolate* isolate, const Local<S>& other, IsDroppable);
 
   template <class S>
   V8_INLINE TracedReference<S>& As() const {
@@ -320,34 +281,39 @@ class TracedReference : public BasicTracedReference<T> {
 
 // --- Implementation ---
 template <class T>
-internal::Address* BasicTracedReference<T>::NewFromNonEmptyValue(
-    Isolate* isolate, T* that, internal::Address** slot,
-    internal::TracedReferenceStoreMode store_mode,
-    internal::TracedReferenceHandling reference_handling) {
+internal::Address* BasicTracedReference<T>::New(
+    Isolate* isolate, T* that, void* slot,
+    internal::GlobalHandleStoreMode store_mode) {
+  if (that == nullptr) return nullptr;
+  internal::Address* p = reinterpret_cast<internal::Address*>(that);
   return internal::GlobalizeTracedReference(
-      reinterpret_cast<internal::Isolate*>(isolate),
-      internal::ValueHelper::ValueAsAddress(that),
-      reinterpret_cast<internal::Address*>(slot), store_mode,
-      reference_handling);
+      reinterpret_cast<internal::Isolate*>(isolate), p,
+      reinterpret_cast<internal::Address*>(slot), store_mode);
 }
 
 void TracedReferenceBase::Reset() {
-  if (V8_UNLIKELY(IsEmpty())) {
-    return;
-  }
-  internal::DisposeTracedReference(slot());
+  if (IsEmpty()) return;
+  internal::DisposeTracedReference(reinterpret_cast<internal::Address*>(val_));
   SetSlotThreadSafe(nullptr);
 }
 
 V8_INLINE bool operator==(const TracedReferenceBase& lhs,
                           const TracedReferenceBase& rhs) {
-  return internal::HandleHelper::EqualHandles(lhs, rhs);
+  v8::internal::Address* a = reinterpret_cast<v8::internal::Address*>(lhs.val_);
+  v8::internal::Address* b = reinterpret_cast<v8::internal::Address*>(rhs.val_);
+  if (a == nullptr) return b == nullptr;
+  if (b == nullptr) return false;
+  return *a == *b;
 }
 
 template <typename U>
 V8_INLINE bool operator==(const TracedReferenceBase& lhs,
                           const v8::Local<U>& rhs) {
-  return internal::HandleHelper::EqualHandles(lhs, rhs);
+  v8::internal::Address* a = reinterpret_cast<v8::internal::Address*>(lhs.val_);
+  v8::internal::Address* b = reinterpret_cast<v8::internal::Address*>(*rhs);
+  if (a == nullptr) return b == nullptr;
+  if (b == nullptr) return false;
+  return *a == *b;
 }
 
 template <typename U>
@@ -378,28 +344,10 @@ template <class S>
 void TracedReference<T>::Reset(Isolate* isolate, const Local<S>& other) {
   static_assert(std::is_base_of<T, S>::value, "type check");
   this->Reset();
-  if (V8_UNLIKELY(other.IsEmpty())) {
-    return;
-  }
-  this->SetSlotThreadSafe(this->NewFromNonEmptyValue(
-      isolate, *other, &this->slot(),
-      internal::TracedReferenceStoreMode::kAssigningStore,
-      internal::TracedReferenceHandling::kDefault));
-}
-
-template <class T>
-template <class S>
-void TracedReference<T>::Reset(Isolate* isolate, const Local<S>& other,
-                               IsDroppable) {
-  static_assert(std::is_base_of<T, S>::value, "type check");
-  this->Reset();
-  if (V8_UNLIKELY(other.IsEmpty())) {
-    return;
-  }
-  this->SetSlotThreadSafe(this->NewFromNonEmptyValue(
-      isolate, *other, &this->slot(),
-      internal::TracedReferenceStoreMode::kAssigningStore,
-      internal::TracedReferenceHandling::kDroppable));
+  if (other.IsEmpty()) return;
+  this->SetSlotThreadSafe(
+      this->New(isolate, other.val_, &this->val_,
+                internal::GlobalHandleStoreMode::kAssigningStore));
 }
 
 template <class T>
@@ -424,7 +372,9 @@ template <class T>
 TracedReference<T>& TracedReference<T>::operator=(
     TracedReference&& rhs) noexcept {
   if (this != &rhs) {
-    internal::MoveTracedReference(&rhs.slot(), &this->slot());
+    internal::MoveTracedReference(
+        reinterpret_cast<internal::Address**>(&rhs.val_),
+        reinterpret_cast<internal::Address**>(&this->val_));
   }
   return *this;
 }
@@ -433,8 +383,10 @@ template <class T>
 TracedReference<T>& TracedReference<T>::operator=(const TracedReference& rhs) {
   if (this != &rhs) {
     this->Reset();
-    if (!rhs.IsEmpty()) {
-      internal::CopyTracedReference(&rhs.slot(), &this->slot());
+    if (rhs.val_ != nullptr) {
+      internal::CopyTracedReference(
+          reinterpret_cast<const internal::Address* const*>(&rhs.val_),
+          reinterpret_cast<internal::Address**>(&this->val_));
     }
   }
   return *this;
@@ -443,16 +395,16 @@ TracedReference<T>& TracedReference<T>::operator=(const TracedReference& rhs) {
 void TracedReferenceBase::SetWrapperClassId(uint16_t class_id) {
   using I = internal::Internals;
   if (IsEmpty()) return;
-  uint8_t* addr =
-      reinterpret_cast<uint8_t*>(slot()) + I::kTracedNodeClassIdOffset;
+  internal::Address* obj = reinterpret_cast<internal::Address*>(val_);
+  uint8_t* addr = reinterpret_cast<uint8_t*>(obj) + I::kTracedNodeClassIdOffset;
   *reinterpret_cast<uint16_t*>(addr) = class_id;
 }
 
 uint16_t TracedReferenceBase::WrapperClassId() const {
   using I = internal::Internals;
   if (IsEmpty()) return 0;
-  uint8_t* addr =
-      reinterpret_cast<uint8_t*>(slot()) + I::kTracedNodeClassIdOffset;
+  internal::Address* obj = reinterpret_cast<internal::Address*>(val_);
+  uint8_t* addr = reinterpret_cast<uint8_t*>(obj) + I::kTracedNodeClassIdOffset;
   return *reinterpret_cast<uint16_t*>(addr);
 }
 

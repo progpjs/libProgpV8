@@ -6,7 +6,6 @@
 #define INCLUDE_V8_SNAPSHOT_H_
 
 #include "v8-internal.h"      // NOLINT(build/include_directory)
-#include "v8-isolate.h"       // NOLINT(build/include_directory)
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
 #include "v8config.h"         // NOLINT(build/include_directory)
 
@@ -89,14 +88,10 @@ class V8_EXPORT SnapshotCreator {
    * \param existing_blob existing snapshot from which to create this one.
    * \param external_references a null-terminated array of external references
    *        that must be equivalent to CreateParams::external_references.
-   * \param owns_isolate whether this SnapshotCreator should call
-   *        v8::Isolate::Dispose() during its destructor.
    */
-  V8_DEPRECATE_SOON("Use the version that passes CreateParams instead.")
-  explicit SnapshotCreator(Isolate* isolate,
-                           const intptr_t* external_references = nullptr,
-                           const StartupData* existing_blob = nullptr,
-                           bool owns_isolate = true);
+  SnapshotCreator(Isolate* isolate,
+                  const intptr_t* external_references = nullptr,
+                  const StartupData* existing_blob = nullptr);
 
   /**
    * Create and enter an isolate, and set it up for serialization.
@@ -106,35 +101,8 @@ class V8_EXPORT SnapshotCreator {
    * \param external_references a null-terminated array of external references
    *        that must be equivalent to CreateParams::external_references.
    */
-  V8_DEPRECATE_SOON("Use the version that passes CreateParams instead.")
-  explicit SnapshotCreator(const intptr_t* external_references = nullptr,
-                           const StartupData* existing_blob = nullptr);
-
-  /**
-   * Creates an Isolate for serialization and enters it. The creator fully owns
-   * the Isolate and will invoke `v8::Isolate::Dispose()` during destruction.
-   *
-   * \param params The parameters to initialize the Isolate for. Details:
-   *               - `params.external_references` are expected to be a
-   *                 null-terminated array of external references.
-   *               - `params.existing_blob` is an optional snapshot blob from
-   *                 which can be used to initialize the new blob.
-   */
-  explicit SnapshotCreator(const v8::Isolate::CreateParams& params);
-
-  /**
-   * Initializes an Isolate for serialization and enters it. The creator does
-   * not own the Isolate but merely initialize it properly.
-   *
-   * \param isolate The isolate that was allocated by `Isolate::Allocate()~.
-   * \param params The parameters to initialize the Isolate for. Details:
-   *               - `params.external_references` are expected to be a
-   *                 null-terminated array of external references.
-   *               - `params.existing_blob` is an optional snapshot blob from
-   *                 which can be used to initialize the new blob.
-   */
-  SnapshotCreator(v8::Isolate* isolate,
-                  const v8::Isolate::CreateParams& params);
+  SnapshotCreator(const intptr_t* external_references = nullptr,
+                  const StartupData* existing_blob = nullptr);
 
   /**
    * Destroy the snapshot creator, and exit and dispose of the Isolate
@@ -211,12 +179,16 @@ class V8_EXPORT SnapshotCreator {
 
 template <class T>
 size_t SnapshotCreator::AddData(Local<Context> context, Local<T> object) {
-  return AddData(context, internal::ValueHelper::ValueAsAddress(*object));
+  T* object_ptr = *object;
+  internal::Address* p = reinterpret_cast<internal::Address*>(object_ptr);
+  return AddData(context, *p);
 }
 
 template <class T>
 size_t SnapshotCreator::AddData(Local<T> object) {
-  return AddData(internal::ValueHelper::ValueAsAddress(*object));
+  T* object_ptr = *object;
+  internal::Address* p = reinterpret_cast<internal::Address*>(object_ptr);
+  return AddData(*p);
 }
 
 }  // namespace v8
